@@ -50,10 +50,26 @@ Deno.serve(async (req) => {
   }
 
   // 3. 静态文件服务（作为默认回退）
-  return serveDir(new Request(url, req), {
+  const response = await serveDir(new Request(url, req), {
     fsRoot: ".",
     urlRoot: "",
     showDirListing: false,
     quiet: true,
   });
+
+  // 4. 自定义 404 处理
+  if (response.status === 404) {
+    try {
+      const notFoundPage = await Deno.readTextFile("./404.html");
+      return new Response(notFoundPage, {
+        status: 404,
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    } catch (_e) {
+      // 如果仓库里没有 404.html，则回退到默认的 404 响应
+      return response;
+    }
+  }
+
+  return response;
 });
