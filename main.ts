@@ -1,4 +1,4 @@
-import { serveDir } from "https://deno.land/std/http/file_server.ts";
+import { serveDir } from "jsr:@std/http@1.0.0/file-server";
 
 // 存储所有已连接的 WebSocket 客户端
 const clients = new Set<WebSocket>();
@@ -12,11 +12,12 @@ function broadcast(message: string) {
   }
 }
 
-Deno.serve((req) => {
+Deno.serve(async (req) => {
   const url = new URL(req.url);
+  const pathname = url.pathname;
 
-  // WebSocket 升级请求
-  if (url.pathname === "/ws") {
+  // 1. 动态处理：WebSocket 升级请求
+  if (pathname === "/ws") {
     if (req.headers.get("upgrade") !== "websocket") {
       return new Response("Expects WebSocket", { status: 426 });
     }
@@ -30,14 +31,26 @@ Deno.serve((req) => {
       console.log(`客户端断开，当前在线: ${clients.size}`);
     };
     socket.onmessage = (event) => {
-      // 将收到的消息广播给所有客户端
-      broadcast(event.data);
+      broadcast(event.data); // 将收到的消息广播给所有客户端
     };
     return response;
   }
 
-  // 静态文件服务（放在最后，作为默认回退）
-  return serveDir(req, {
+  // 2. 自动补全：处理无后缀的路径（如 /mrbt 自动映射到 /mrbt.html）
+  if (pathname !== "/" && !pathname.includes(".")) {
+    try {
+      const htmlPath = "." + pathname + ".html";
+      const stat = await Deno.stat(htmlPath);
+      if (stat.isFile) {
+        url.pathname = pathname + ".html";
+      }
+    } catch (_e) {
+      // 找不到对应的 .html 文件，忽略，继续走 serveDir 的逻辑
+    }
+  }
+
+  // 3. 静态文件服务（作为默认回退）
+  return serveDir(new Request(url, req), {
     fsRoot: ".",
     urlRoot: "",
     showDirListing: false,
