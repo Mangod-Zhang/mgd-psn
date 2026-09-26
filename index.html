@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="utf-8">
+	<title>欢迎来到MGD私人网站!</title>
+	<link rel="icon" href="https://s1.imagehub.cc/images/2026/05/22/1d9c9f10ada5606d7c2f0d1730b3eb8a.th.jpg" style="border-radius: 50%">
+	<style>
+        body {
+            background-color: hsla(325, 50%, 90%, 1.00); /* 这里改颜色 */
+			color: #555;
+        }
+</style>
+</head>
+<body>
+	<header style="background-color: hsla(325, 100%, 65%, 1.00);display:flex;align-items:center;justify-content:flex-start;gap:30px;padding:12px 20px;border-radius: 32px;position: fixed; top:10px;left:5%;right:5%; width:90%;z-index:999;box-shadow:0 10px 40px rgba(0,0,0,0.15)">
+    	<nav>
+    	    <a href = "index.html">
+    	        <img src="https://s1.imagehub.cc/images/2026/05/22/1d9c9f10ada5606d7c2f0d1730b3eb8a.th.jpg" style="border-radius: 50%; height : 90px">
+    	    </a>
+    	</nav>
+    	<span class="menu">
+        	<strong style="color: #fff">
+            	<h1>News-2026.06.08</h1>
+            	<p>SOM官网持续开发中</p>
+        	</strong>
+    	</span>
+	</header>
+	<!--<div style="
+        max-width: 1400px;
+        margin: 20px auto;
+        padding: 20px;
+		border-radius: 12px;
+		background-color: #ffe600;
+        border-bottom: 1px solid #ffe600;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    ">
+    <h2 style="
+        text-align: center;
+        color: #ff0000;
+        margin-bottom: 20px;
+    ">注：该页面尚未开发完毕！</h2>
+    </div>-->
+	<main style="padding-top: 180px;">
+		<h1 style = "text-align: center;">欢迎来到MGD私人网站!</h1>
+	</main>
+	
+	<!--<div  style="
+        max-width: 1400px;
+        margin: 20px auto;
+        padding: 20px;
+		border-radius: 12px;
+		background-color: hsla(325, 100%, 65%, 1.00);
+        border-bottom: 1px solid hsla(325, 100%, 65%, 1.00);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		">
+		
+	</div>-->
+
+
+    <h2 id="countdown" style="text-align: center"></h2>
+
+	<script>
+		function updateTime() {
+    		const now = new Date();
+    		let target = new Date(now.getFullYear(), 5, 7, 0, 0, 0);
+    		if (target < now) {
+    		    target = new Date(now.getFullYear() + 1, 5, 7, 0, 0, 0);
+    		}
+    		let diff = target - now;
+    		const day = Math.floor(diff / (1000 * 60 * 60 * 24));
+    		diff %= 1000 * 60 * 60 * 24;
+    		const hour = Math.floor(diff / (1000 * 60 * 60));
+    		diff %= 1000 * 60 * 60;
+    		const minute = Math.floor(diff / (1000 * 60));
+    		diff %= 1000 * 60;
+    		const second = Math.floor(diff / 1000);
+    		if(day != 364) document.getElementById('countdown').innerText = `距离MGD生日还有：${day}天 ${hour}小时 ${minute}分 ${second}秒`;
+			else document.getElementById('countdown').innerText = `祝MGD 生日快乐！`;
+		}
+		updateTime();
+		setInterval(updateTime, 1000);
+	</script>
+	<div id="countMask" style="position:fixed;inset:0;background:#000;opacity:0.8;z-index:99999;display:flex;align-items:center;justify-content:center;display:none;">
+    	<div id="countText" style="font-size:324px;color:#fff;font-weight:bold;text-align:center"></div>
+	</div>
+
+	<script>
+		const startTime = new Date("2026-06-06 21:30:00").getTime();
+		const endTime = new Date("2026-06-07 00:00:00").getTime();
+		const maskDom = document.getElementById("countMask");
+		const textDom = document.getElementById("countText");
+
+		function countDown() {
+    		const now = Date.now();
+    		if (now < startTime) {
+    		    setTimeout(countDown, 1000);
+    		    return;
+    		}
+    		if (now >= endTime+60000) {
+     		   maskDom.remove();
+        		return;
+    		}
+    		maskDom.style.display = "flex";
+    		let surplus = Math.floor((endTime - now) / 1000);
+    		if(surplus > 0){
+				textDom.innerHTML = `<div style="font-size:40px;margin-bottom:8px;">距离MGD生日还有</div><div>${surplus}</div>`;
+				if(surplus == 729){
+					textDom.innerHTML = `<div style="font-size:40px;margin-bottom:8px;">距离MGD生日还有</div><div>ki729</div>`;
+				}
+				if(surplus == 2745){
+					textDom.innerHTML = `<div style="font-size:40px;margin-bottom:8px;">距离MGD生日还有</div><div>2745(99)</div>`;
+				}
+			}else{
+				textDom.innerHTML = `<div style="font-size:40px;margin-bottom:8px;">祝MGD</div><div>生日快乐!</div>`;
+			}
+    		setTimeout(countDown, 1000);
+		}
+		countDown();
+	</script>
+	<div style="
+        width: 75%;
+        margin: 20px auto;
+        padding: 20px;
+		border-radius: 12px;
+		background-color: hsla(30, 50%, 75%, 1.00);
+        border-bottom: 1px solid hsla(30, 50%, 75%, 1.00);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    ">
+	<h2 style="
+        text-align: left;
+        color: #555;
+        margin-bottom: 20px;
+    ">Introduction</h2>
+	<p style="
+        color: #555;
+        line-height: 1.6;
+        text-align: left;
+        margin: 10px 0;"
+    ><strong style="color: hsla(325, 100%, 65%, 1.00)">MGD</strong>(别名：MGDZ, Mangod Zhang, 芒果)<br>
+	目前全网粉丝数700+<br>
+	这里不知道该写啥了（值得一提的是，注意到显然并非，或许这是真的）
+	</p>
+    </div>
+	<div style="
+        width: 75%;
+        margin: 20px auto;
+        padding: 20px;
+		border-radius: 12px;
+		background-color: hsla(0, 50%, 75%, 1.00);
+        border-bottom: 1px solid hsla(0, 50%, 75%, 1.00);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    ">
+	<h2 style="
+        text-align: left;
+        color: #555;
+        margin-bottom: 20px;
+    ">Way To Connect</h2>
+	<p style="
+        color: #555;
+        line-height: 1.6;
+        text-align: left;
+        margin: 10px 0;"
+    >抖音:一只刚种下来的芒果-Mangod<br>
+	抖音号:<a href="https://www.douyin.com/user/MS4wLjABAAAAgjV6KnXN3Lunqq7H_x9exykNUm74mraf_rvJqLOtm-sKH9RaJrHHqw2ZjKkdQsuU?from_tab_name=main" target="_blank" style ="color: hsla(325, 100%, 65%, 1.00)">Mangod_Zhang</a><br>
+	B站:一只刚种下来的芒果<br>
+	UID:<a href="https://space.bilibili.com/3546721881688353" target="_blank" style ="color: hsla(325, 100%, 65%, 1.00)">3546721881688353</a>
+	</p>
+    </div>
+	<div style="
+        width: 75%;
+        margin: 20px auto;
+        padding: 20px;
+		border-radius: 12px;
+		background-color: hsla(285, 50%, 75%, 1.00);
+        border-bottom: 1px solid hsla(285, 50%, 75%, 1.00);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    ">
+	<h2 style="
+        text-align: left;
+        color: #555;
+        margin-bottom: 20px;
+    ">Other Webpages</h2>
+	<h3 style="
+        text-align: left;
+        color: #555;
+        margin-bottom: 20px;
+	">站内</h3>
+	<a href="https://mgd-personal.rth1.xyz/som" target="_blank" style ="color: hsla(325, 100%, 65%, 1.00)">小球竞技场SOM</a><br>
+	<a href="https://mgd-personal.rth1.xyz/picofmgd" style ="color: hsla(325, 100%, 65%, 1.00)">MGD猎奇图片展</a><br>
+	<a href="https://mgd-personal.rth1.xyz/luobei" style ="color: hsla(325, 100%, 65%, 1.00)">洛北省及其周边</a><br>
+	<a href="https://mgd-personal.rth1.xyz/mrbt" style ="color: hsla(325, 100%, 65%, 1.00)">MRBT随机二叉树可视化</a><br>
+	<a href="https://mgd-personal.rth1.xyz/BlockWar" style ="color: hsla(325, 100%, 65%, 1.00)">game:方格纸上的战争</a><br>
+	<h3 style="
+        text-align: left;
+        color: #555;
+        margin-bottom: 20px;
+	">站外</h3>
+	<a href="https://luogu.com.cn" target="_blank" style ="color: hsla(325, 100%, 65%, 1.00)">洛谷</a><br>
+	<a href="https://aarc.jowei19.com" target="_blank" style ="color: hsla(325, 100%, 65%, 1.00)">AARC</a><br>
+	<a href="https://host.retiehe.com" target="_blank" style ="color: hsla(325, 100%, 65%, 1.00)">热铁盒（开发工具）</a><br>
+	<a href="https://algodoo.com" target="_blank" style ="color: hsla(325, 100%, 65%, 1.00)">Algodoo</a><br>
+    </div>
+</body>
+</html>

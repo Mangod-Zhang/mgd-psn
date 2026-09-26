@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="utf-8">
+	<title>SOM：角色列表</title>
+	<link rel="icon" href="https://s1.imagehub.cc/images/2026/05/22/1d9c9f10ada5606d7c2f0d1730b3eb8a.th.jpg" style="border-radius: 50%">
+	<style>
+        body {
+            background-color: #f0f0f0; /* 这里改颜色 */
+			color: #555;
+        }
+		*{margin:0;padding:0;box-sizing:border-box;font-family:SimHei,Microsoft YaHei}
+		.box{
+  			width: 600px;
+  			border: 2px solid #000;
+  			border-radius: 6px;
+  			overflow: visible;
+		}
+		.box-header{
+  			background:#000;
+  			color:#fff;
+  			display:flex;
+  			justify-content: space-between;
+  			align-items: center;
+  			padding:40px 16px;
+  			position:relative;
+		}
+		.role-list{
+  			padding:48px 16px;
+		}
+		/* 链接基础样式 + 定位给悬浮图用 */
+		.role-list a{
+			text-decoration:none;
+  			font-size:24px;
+  			line-height:2;
+  			color:#8b0000;
+			position: relative;
+			display: inline-block;
+			width: 100%;
+			padding-bottom: 12px;
+			border-bottom: 1px solid #ccc; /* 分隔线 */
+			margin-bottom: 12px;
+		}
+		.role-list a:hover{
+  			font-size:40px;
+  			line-height:2.2;
+  			color:#ac0000;
+		}
+		/* 悬浮预览图默认隐藏 */
+		.preview-img{
+			display: none;
+			position: absolute;
+			left: 85%; /* 贴在文字右侧 */
+			top: -10px;
+			width: 110px;
+			border-radius: 50%;
+			box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+			z-index: 9999;
+		}
+		/* 悬浮链接时显示图片 */
+		.role-list a:hover .preview-img{
+			display: block;
+		}
+	</style>
+</head>
+<body>
+	<header style="background-color: hsla(325,100%,65%,1);display:flex;align-items:center;justify-content:flex-start;gap:30px;padding:12px 20px;border-radius: 32px;position: fixed; top:10px;left:5%;right:5%; width:90%;z-index:999;box-shadow:0 10px 40px rgba(0,0,0,0.15);overflow-x:auto;white-space:nowrap;scrollbar-width:hidden">
+		<nav>
+			<a href = "/som">
+    	        <img src="https://s1.imagehub.cc/images/2026/05/22/1d9c9f10ada5606d7c2f0d1730b3eb8a.th.jpg" style="border-radius: 50%; height : 60px">
+    	    </a>
+		</nav>
+		<nav>
+			<span class="menu">
+				<a href="/som" style="color:white; margin:0 15px; text-decoration:none;">首页</a>
+				<a href="/som/download" style="color:white; margin:0 15px; text-decoration:none;">下载与使用</a>
+				<a href="/som/role" style="color:white; margin:0 15px; text-decoration:none;">角色介绍</a>
+				<a href="/som/mod" style="color:white; margin:0 15px; text-decoration:none;">模式介绍</a>
+				<a href="/som/news" style="color:white; margin:0 15px; text-decoration:none;">更新日志</a>
+				<a href="/som/GD" style="color:white; margin:0 15px; text-decoration:none;">工单</a>
+    		</span>
+		</nav>
+	</header>
+	<div class="box" style="gap:30px;padding:20px;border-radius:32px;width:75%;margin:120px auto 30px auto;">
+  		<div class="box-header" style="border-radius: 32px">
+    		<div class="box-title" style="font-size: 20px">角色列表</div>
+  		</div>
+
+  		<div class="role-list" id="top" style="font-size: 15px">
+    		<a href="/som/role-itr/fridge">
+				fridge
+				<img class="preview-img" src="https://s1.imagehub.cc/images/2026/06/27/44dc3a9418fef57867ac00cc9c9e949a.jpg">
+			</a>
+			<a href="/som/role-itr/ki729">
+				ki729
+				<img class="preview-img" src="https://s1.imagehub.cc/images/2026/06/27/52d45b191c832527440125a9640bbf58.jpg">
+			</a>
+			<a href="/som/role-itr/poster">
+				poster
+				<img class="preview-img" src="https://s1.imagehub.cc/images/2026/06/27/d64a6cb8b5ec9ce19016f5592215aa98.jpg">
+			</a>
+			<a href="/som/role-itr/mangod">
+				mangod
+				<img class="preview-img" src="https://s1.imagehub.cc/images/2026/06/27/e32ebae737d6bf56bc001e21a678f24b.jpg">
+			</a>
+			<a href="/som/role-itr/ink">
+				ink
+				<img class="preview-img" src="https://s1.imagehub.cc/images/2026/06/27/2d9fc8ee35e68d7cd25e4e0745356795.jpg">
+			</a>
+			<a href="/som/role-itr/ztx">
+				ztx
+				<img class="preview-img" src="https://s1.imagehub.cc/images/2026/06/27/c7ebaf678654e135ed5a25433f541142.png">
+			</a>
+			<a href="/som/role-itr/xutaiwei">
+				xutaiwei
+				<img class="preview-img" src="https://s1.imagehub.cc/images/2026/06/27/0b4b2313146e99d9c114c38c89f19621.jpg">
+			</a>
+			<a href="/som/role-itr/hyw666">
+				hyw666
+				<img class="preview-img" src="https://s1.imagehub.cc/images/2026/06/27/39769b4d3b816e44a79f418118e99aa3.jpg">
+			</a>
+			<a href="/som/role-itr/target">
+				target
+				<img class="preview-img" src="https://s1.imagehub.cc/images/2026/06/27/9d8524e2c88050d5a6168d4163c8c554.jpg">
+			</a>
+  		</div>
+	</div>
+</body>

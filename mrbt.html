@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>MRBT</title>
+<style>
+body{margin:0;font-family:sans-serif;overflow:hidden;background:#f5f5f5;touch-action:none}
+canvas{position:fixed;top:0;left:0}
+#ui{position:fixed;top:10px;left:10px;background:rgba(255,255,255,.95);padding:12px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.2);z-index:10;font-size:14px;max-height:90vh;overflow-y:auto;width:260px}
+#ui label{display:block;margin:8px 0;font-size:13px}
+#ui input{width:150px;vertical-align:middle}
+#st{position:fixed;top:10px;right:10px;background:rgba(255,255,255,.95);padding:10px;border-radius:8px;font-size:12px;z-index:10;line-height:1.6;min-width:160px}
+button{margin:3px 5px 0 0;padding:6px 12px;border:1px solid #999;border-radius:4px;background:#fff;cursor:pointer}
+button:active{background:#eee}
+#center-btn{position:fixed;bottom:20px;right:20px;background:#007bff;color:#fff;border:none;border-radius:50%;width:50px;height:50px;font-size:20px;cursor:pointer;z-index:20}
+#io-panel{position:fixed;bottom:80px;right:20px;background:rgba(255,255,255,.95);padding:10px;border-radius:8px;z-index:20;box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:12px}
+#io-panel textarea{width:200px;height:60px;margin:5px 0;font-size:11px;padding:5px;box-sizing:border-box}
+#io-panel button{margin:2px;padding:4px 8px;font-size:11px}
+#msg{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;padding:8px 16px;border-radius:4px;z-index:30;display:none;font-size:13px}
+</style>
+</head>
+<body>
+<div id="ui">
+<label>p: <input type="range" id="p" min="0.01" max="0.99" step="0.01" value="0.5"> <span id="pv">0.5</span></label>
+<label>t(s): <input type="range" id="t" min="0.1" max="3" step="0.1" value="0.5"> <span id="tv">0.5</span></label>
+<label>sz(px): <input type="range" id="sz" min="50" max="200" step="5" value="100"> <span id="sv">100</span></label>
+<label>深度限制: <input type="number" id="md" min="0" max="100" value="0"> <span>(0=∞)</span></label>
+<button id="btn">开始</button>
+<button id="stepBtn">单步</button>
+<button id="rst">重置</button>
+</div>
+<div id="st"></div>
+<button id="center-btn">◎</button>
+<div id="io-panel">
+  <b>导出</b><br>
+    <textarea id="io-data" placeholder="01序列，2表示深度限制"></textarea><br>
+	  <button id="export-btn">导出</button>
+	    <button id="copy-btn">复制</button>
+		</div>
+		<div id="msg"></div>
+		<canvas id="c"></canvas>
+		<script>
+		let id=0,root,cur,p=.5,it=500,gap=100,pend=2,run=false,paused=false,tid=null,cx=0,cy=0,drag=false,dx=0,dy=0,md=0,sc=1,ltd=0,dlc=0;
+		let collapsed=new Set();
+		let finished=false;
+		let history=[];
+		class N{constructor(d,pa){this.d=d;this.pa=pa;this.l=null;this.r=null;this.la=false;this.ra=false;this.ls=false;this.rs=false;this.dl=false;this.id=id++;this.x=0;this.y=0;this.w=1;this.lvx=null;this.rvx=null}}
+		const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+		const btn=document.getElementById('btn'),pv=document.getElementById('pv'),tv=document.getElementById('tv'),sv=document.getElementById('sv');
+
+		function rs(){cv.width=innerWidth;cv.height=innerHeight}
+		function init(){id=0;root=new N(1,null);cur=root;pend=2;dlc=0;collapsed.clear();finished=false;history=[];layout();st();rd()}
+		function reset(){if(tid)clearTimeout(tid);run=false;paused=false;init();cx=innerWidth/2;cy=120;sc=1;btn.textContent='开始';rd()}
+
+		function isCollapsed(n){return collapsed.has(n.id)}
+		function cw(n){
+		    if(!n)return 0;
+			    if(isCollapsed(n)){n.w=1;return 1;}
+				    let lw=cw(n.l);
+					    let rw=cw(n.r);
+						    if(!n.l && n.la && !n.ls && !n.dl) lw+=1;
+							    if(!n.r && n.ra && !n.rs && !n.dl) rw+=1;
+								    n.w=lw+rw;
+									    return n.w;
+										}
+										function layout(){
+										  if(!root)return;
+										    cw(root);
+											  let sp=Math.max(60,gap*.8);
+											    let x=0;
+												  function assign(n){
+												      if(!n)return;
+													      if(isCollapsed(n)){n.x=x*sp;x++;return;}
+														      if(!n.l && n.la && !n.ls && !n.dl){n.lvx=x*sp;x++;}
+															      assign(n.l);
+																      if(!n.l&&!n.r&&!(n.la&&!n.ls)&&!(n.ra&&!n.rs)){n.x=x*sp;x++;}
+																	      else{
+																		        let lx=null,rx=null;
+																				      if(n.l) lx=n.l.x;
+																					        if(!n.l && n.la && !n.ls && !n.dl) lx=n.lvx;
+																							      if(n.r) rx=n.r.x;
+																								        if(!n.r && n.ra && !n.rs && !n.dl) rx=n.rvx;
+																										      if(lx!==null&&rx!==null) n.x=(lx+rx)/2;
+																											        else if(lx!==null) n.x=lx+sp/2;
+																													      else if(rx!==null) n.x=rx-sp/2;
+																														      }
+																															      assign(n.r);
+																																      if(!n.r && n.ra && !n.rs && !n.dl){n.rvx=x*sp;x++;}
+																																	    }
+																																		  x=0;
+																																		    assign(root);
+																																			  function fix(n){
+																																			      if(!n)return;
+																																				      fix(n.l);fix(n.r);
+																																					      if(isCollapsed(n)){n.y=(n.d-1)*gap;return;}
+																																						      let lx=null,rx=null;
+																																							      if(n.l) lx=n.l.x;
+																																								      if(!n.l && n.la && !n.ls && !n.dl) lx=n.lvx;
+																																									      if(n.r) rx=n.r.x;
+																																										      if(!n.r && n.ra && !n.rs && !n.dl) rx=n.rvx;
+																																											      if(lx!==null&&rx!==null) n.x=(lx+rx)/2;
+																																												      else if(lx!==null) n.x=lx+sp/2;
+																																													      else if(rx!==null) n.x=rx-sp/2;
+																																														      n.y=(n.d-1)*gap;
+																																															    }
+																																																  fix(root);
+																																																  }
+																																																  function st(){let nc=cn(root),se=0,fe=0;function ce(n){if(!n)return;if(n.la&&!n.dl&&!isCollapsed(n)){if(n.ls)se++;else fe++}if(n.ra&&!n.dl&&!isCollapsed(n)){if(n.rs)se++;else fe++}ce(n.l);ce(n.r)}ce(root);document.getElementById('st').innerHTML=`深度:${finished?'完成':(cur?cur.d:'-')}<br>待生成:${pend}<br>节点:${nc}<br>成功边:${se}<br>失败边:${fe}<br>深度限制:${dlc}`}
+																																																  function cn(n){return n?1+cn(n.l)+cn(n.r):0}
+
+																																																  function innerStep(){
+																																																    if(pend<=0||!cur){
+																																																	    run=false;finished=true;cur=null;btn.textContent='开始';st();rd();centerOn(root);
+																																																		    return false;
+																																																			  }
+																																																			    if(md>0&&cur.d>=md){
+																																																				    cur.dl=true;dlc++;pend-=2;history.push(2);
+																																																					    layout();st();rd();centerOn(cur);
+																																																						    cur=cur.pa;
+																																																							    return true;
+																																																								  }
+																																																								    if(!cur.la){
+																																																									    cur.la=true;cur.ls=Math.random()<p;
+																																																										    history.push(cur.ls?1:0);
+																																																											    if(cur.ls){cur.l=new N(cur.d+1,cur);pend++;cur=cur.l}
+																																																												    else pend--;
+																																																													    layout();st();rd();centerOn(cur);
+																																																														    return true;
+																																																															  }
+																																																															    if(!cur.ra){
+																																																																    cur.ra=true;cur.rs=Math.random()<p;
+																																																																	    history.push(cur.rs?1:0);
+																																																																		    if(cur.rs){cur.r=new N(cur.d+1,cur);pend++;cur=cur.r}
+																																																																			    else pend--;
+																																																																				    layout();st();rd();centerOn(cur);
+																																																																					    return true;
+																																																																						  }
+																																																																						    cur=cur.pa;st();rd();centerOn(cur);
+																																																																							  return true;
+																																																																							  }
+
+																																																																							  function singleStep(){
+																																																																							    if(finished) return;
+																																																																								  innerStep();
+																																																																								  }
+
+																																																																								  function stepAuto(){
+																																																																								    if(!run||paused) return;
+																																																																									  const ok = innerStep();
+																																																																									    if(!ok) return;
+																																																																										  tid=setTimeout(stepAuto,it);
+																																																																										  }
+
+																																																																										  function start(){if(run)return;if(!root||pend<=0)init();run=true;paused=false;finished=false;btn.textContent='暂停';stepAuto()}
+																																																																										  function pause(){if(!run||paused)return;paused=true;btn.textContent='继续';if(tid)clearTimeout(tid)}
+																																																																										  function resume(){if(!run||!paused)return;paused=false;btn.textContent='暂停';stepAuto()}
+
+																																																																										  function centerOn(n){if(!n)return;cx=innerWidth/2-n.x*sc;cy=innerHeight/2-n.y*sc}
+																																																																										  function cc(){if(finished){centerOn(root);rd();return;}if(!cur)return;centerOn(cur);rd()}
+																																																					function rd(){ctx.clearRect(0,0,cv.width,cv.height);ctx.fillStyle='#fafafa';ctx.fillRect(0,0,cv.width,cv.height);ctx.save();ctx.translate(cx,cy);ctx.scale(sc,sc);if(root)dt(root);ctx.restore()}
+																																																					function de(x1,y1,x2,y2,c){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle=c;ctx.lineWidth=2;ctx.stroke()}
+																																																					function dt(n){
+																																																					  if(!n)return;
+																																																					    if(!isCollapsed(n)){
+																																																						    if(n.la&&!n.ls&&!n.dl){let fx=n.lvx,fy=n.y+gap*.5;de(n.x,n.y,fx,fy,'#dc3545');ctx.beginPath();ctx.arc(fx,fy,3,0,Math.PI*2);ctx.fillStyle='#dc3545';ctx.fill();}
+																																																							    if(n.ra&&!n.rs&&!n.dl){let fx=n.rvx,fy=n.y+gap*.5;de(n.x,n.y,fx,fy,'#dc3545');ctx.beginPath();ctx.arc(fx,fy,3,0,Math.PI*2);ctx.fillStyle='#dc3545';ctx.fill();}
+																																																								    if(n.l)de(n.x,n.y,n.l.x,n.l.y,'#28a745');
+																																																									    if(n.r)de(n.x,n.y,n.r.x,n.r.y,'#28a745');
+																																																										  }
+																																																										    if(!isCollapsed(n)){dt(n.l);dt(n.r);}
+																																																											  let ic=(!finished&&n===cur);
+																																																											    let ra=13;
+																																																												  ctx.beginPath();ctx.arc(n.x,n.y,ra,0,Math.PI*2);
+																																																												    ctx.fillStyle=isCollapsed(n)?'#95a5a6':(ic?'#ffc107':'#4a90e2');
+																																																													  ctx.fill();
+																																																													    ctx.strokeStyle=ic?'#ff8c00':'#2c5aa0';ctx.lineWidth=ic?3:2;ctx.stroke();
+																																																														  if(n.dl){ctx.beginPath();ctx.moveTo(n.x-ra-5,n.y+ra+5);ctx.lineTo(n.x+ra+5,n.y+ra+5);ctx.strokeStyle='#ffc107';ctx.lineWidth=3;ctx.stroke()}
+																																																														    if(isCollapsed(n)){let count=cn(n)-1;ctx.fillStyle='#666';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(`+${count}`,n.x,n.y+ra+12);}
+																																																															  ctx.fillStyle='#222';ctx.font='bold 13px sans-serif';ctx.textAlign='left';ctx.textBaseline='bottom';ctx.fillText(`${n.d}`,n.x+ra+4,n.y-ra-4);
+																																																															  }
+																																																															  function hitTest(n,mx,my){
+																																																															    if(!n)return null;
+																																																																  if(isCollapsed(n)){let ra=13;if(Math.hypot(mx-n.x,my-n.y)<ra)return n;return null;}
+																																																																    let hit=hitTest(n.l,mx,my);
+																																																																	  if(hit)return hit;
+																																																																	    hit=hitTest(n.r,mx,my);
+																																																																		  if(hit)return hit;
+																																																																		    let ra=13;
+																																																																			  if(Math.hypot(mx-n.x,my-n.y)<ra)return n;
+																																																																			    return null;
+																																																																				}
+																																																																				function showMsg(msg,isError=false){
+																																																																				  let el=document.getElementById('msg');
+																																																																				    el.textContent=msg;
+																																																																					  el.style.background=isError?'rgba(220,53,69,.9)':'rgba(0,0,0,.7)';
+																																																																					    el.style.display='block';
+																																																																						  clearTimeout(showMsg._t);
+																																																																						    showMsg._t=setTimeout(()=>{el.style.display='none'},2000);
+																																																																							}
+																																																																							function exportData(){
+																																																																							  if(!history.length){showMsg('无数据可导出',true);return;}
+																																																																							    document.getElementById('io-data').value=history.join('');
+																																																																								  showMsg('导出成功');
+																																																																								  }
+																																																																								  async function copyText(){
+																																																																								    const text=document.getElementById('io-data').value.trim();
+																																																																									  if(!text){showMsg('没有内容复制',true);return;}
+																																																																									    try{
+																																																																										    await navigator.clipboard.writeText(text);
+																																																																											    showMsg('已复制到剪贴板');
+																																																																												  }catch(e){
+																																																																												      showMsg('复制失败',true);
+																																																																													    }
+																																																																														}
+																																																																														cv.addEventListener('click',e=>{
+																																																																														  if(drag)return;
+																																																																														    let mx=(e.clientX-cx)/sc,my=(e.clientY-cy)/sc;
+																																																																															  let hit=hitTest(root,mx,my);
+																																																																															    if(hit){
+																																																																																    if(hit.l||hit.r||(hit.la&&!hit.ls)||(hit.ra&&!hit.rs)){
+																																																																																	      if(isCollapsed(hit)){collapsed.delete(hit.id);}
+																																																																																		        else{collapsed.add(hit.id);}
+																																																																																				      layout();rd();
+																																																																																					      }
+																																																																																						    }
+																																																																																							});
+																																																																																							document.getElementById('p').oninput=e=>{p=+e.target.value;pv.textContent=p.toFixed(2)};
+																																																																																							document.getElementById('t').oninput=e=>{it=+e.target.value*1000;tv.textContent=(+e.target.value).toFixed(1)};
+																																																																																							document.getElementById('sz').oninput=e=>{gap=+e.target.value;sv.textContent=gap;if(root){layout();rd()}};
+																																																																																							document.getElementById('md').oninput=e=>{md=parseInt(e.target.value)||0};
+																																																																																							document.getElementById('export-btn').onclick=exportData;
+																																																																																							document.getElementById('copy-btn').onclick=copyText;
+																																																																																							btn.onclick=()=>{if(!run)start();else if(!paused)pause();else resume()};
+																																																																																							document.getElementById('stepBtn').onclick=singleStep;
+																																																																																							rst.onclick=reset;document.getElementById('center-btn').onclick=cc;
+																																																																																							cv.addEventListener('mousedown',e=>{drag=true;dx=e.clientX-cx;dy=e.clientY-cy});
+																																																																																							addEventListener('mousemove',e=>{if(drag){cx=e.clientX-dx;cy=e.clientY-dy;rd()}});
+																																																																																							addEventListener('mouseup',()=>drag=false);
+																																																																																							cv.addEventListener('wheel',e=>{e.preventDefault();sc*=e.deltaY>0?.85:1.15;sc=Math.max(.05,Math.min(10,sc));rd()});
+																																																																																							cv.addEventListener('touchstart',e=>{if(e.touches.length===1){drag=true;dx=e.touches[0].clientX-cx;dy=e.touches[0].clientY-cy}else if(e.touches.length===2){drag=false;ltd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)}},{passive:true});
+																																																																																							addEventListener('touchmove',e=>{if(e.touches.length===1&&drag){cx=e.touches[0].clientX-dx;cy=e.touches[0].clientY-dy;rd()}else if(e.touches.length===2){let d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(ltd>0){sc*=d/ltd;sc=Math.max(.05,Math.min(10,sc))}ltd=d;rd()}},{passive:true});
+																																																																																							addEventListener('touchend',e=>{if(e.touches.length===0){drag=false;ltd=0}});
+																																																																																							addEventListener('resize',()=>{rs();rd()});
+																																																																																							rs();init();cx=innerWidth/2;cy=120;rd();
+																																																																																							</script>
+																																																																																							</body>
+																																																																																							</html>																					  

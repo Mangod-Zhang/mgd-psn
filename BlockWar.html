@@ -1,0 +1,3044 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>方格纸上的战争</title>
+<style>
+html { -webkit-text-size-adjust: 100%; -moz-text-size-adjust: 100%; text-size-adjust: 100%; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #1a1e2a; color: #c8d0e0; font-family: system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+#app { max-width: 1400px; width: 100%; background: #232837; border-radius: 24px; padding: 24px; }
+.panel { background: #2a3142; border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+.panel h3 { font-weight: 400; margin-bottom: 12px; color: #7f8bb3; }
+label { display: inline-block; margin-right: 16px; }
+input, button { background: #1e2537; color: #e0e8f0; border: 1px solid #3d465a; border-radius: 8px; padding: 6px 12px; font-size: 0.9rem; }
+button { background: #3a4a6a; cursor: pointer; transition: 0.2s; }
+button:hover { background: #4f6290; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+input[type="range"] { padding: 0; }
+.flex { display: flex; gap: 20px; flex-wrap: wrap; }
+.col { flex: 1; min-width: 280px; }
+
+.main-title-wrap { text-align: center; padding: 8px 0 24px; border-bottom: 1px solid #3d465a; margin-bottom: 20px; }
+.main-title { font-size: 2.4rem; font-weight: 700; letter-spacing: 6px; color: #ffdd4a; text-shadow: 0 0 20px rgba(255,221,74,0.45), 0 0 40px rgba(255,221,74,0.2); margin-bottom: 10px; }
+.main-subtitle { font-size: 0.82rem; color: #7f8bb3; letter-spacing: 1px; }
+.main-subtitle a { color: #4a9eff; text-decoration: none; border-bottom: 1px dashed #4a9eff; transition: color 0.2s; }
+.main-subtitle a:hover { color: #ffdd4a; border-bottom-color: #ffdd4a; }
+
+#aiTable { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+#aiTable th, #aiTable td { padding: 4px 8px; text-align: left; border-bottom: 1px solid #3d465a; }
+#aiTable th { background: #1e2537; }
+.color-preview { display: inline-block; width: 20px; height: 20px; border-radius: 4px; border: 1px solid #555; vertical-align: middle; }
+.ai-actions button { background: none; border: none; color: #aab3d0; cursor: pointer; }
+.ai-actions button:hover { color: #fff; }
+
+.modal { display: none; position: fixed; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 100; }
+.modal.visible { display: flex; }
+.modal-content { background: #2a3142; padding: 24px; border-radius: 16px; max-width: 480px; width: 90%; max-height: 90vh; overflow-y: auto; }
+.modal-content label { display: block; margin: 8px 0 4px; }
+.modal-content input[type="text"], .modal-content input[type="color"] { width: 100%; }
+.range-row { display: flex; align-items: center; gap: 10px; }
+.range-row input[type="range"] { flex: 1; }
+.range-row span { min-width: 30px; text-align: center; }
+.modal-actions { display: flex; gap: 12px; margin-top: 16px; justify-content: flex-end; }
+.config-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.config-actions input[type="file"] { display: none; }
+
+#game { display: none; }
+#game.active { display: block; }
+
+#statusBar { display: flex; flex-wrap: wrap; gap: 12px; padding: 8px 12px; background: #1e2537; border-radius: 8px; margin-bottom: 16px; }
+.status-item { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; background: #2a3142; padding: 4px 10px; border-radius: 6px; border: 2px solid transparent; transition: border-color 0.2s, box-shadow 0.2s; }
+.status-color { display: inline-block; width: 14px; height: 14px; border-radius: 4px; border: 1px solid #555; }
+.status-name { font-weight: bold; }
+.status-detail { color: #aab3d0; }
+.you-tag { background: #3a5a7a; padding: 0 6px; border-radius: 4px; font-size: 0.7rem; }
+
+.delay-control { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 8px; }
+.delay-control label { font-size: 0.9rem; margin-right: 4px; }
+.delay-control input[type="range"] { width: 100px; }
+.delay-control span { min-width: 32px; text-align: center; }
+.zoom-hint { font-size: 0.75rem; color: #7f8bb3; margin-left: 8px; }
+
+.log { background: #1a1e2a; border-radius: 8px; padding: 8px 12px; max-height: 320px; overflow-y: auto; font-size: 0.8rem; font-family: monospace; white-space: pre-wrap; line-height: 1.35; }
+
+.grid-wrap { overflow: auto; max-height: 600px; background: #1a1e2a; border-radius: 12px; position: relative; display: block; padding: 4px; user-select: none; touch-action: none; cursor: grab; }
+.grid-wrap.panning { cursor: grabbing; }
+table { border-collapse: collapse; margin: 0 auto; }
+td { width: 36px; height: 36px; text-align: center; border: 1px solid #3d465a; font-size: 11px; transition: 0.1s; background-clip: padding-box; position: relative; overflow: hidden; }
+td.owned { font-weight: bold; color: #111; text-shadow: 0 0 4px rgba(255,255,255,0.3); }
+td.capital { box-shadow: inset 0 0 0 1px #3a5a7a; cursor: pointer; }
+td.capital:hover { filter: brightness(1.2); }
+
+.dist-label { position: absolute; bottom: 0; left: 1px; line-height: 1; color: #d8e0f0; opacity: 0.95; pointer-events: none; font-weight: bold; text-shadow: 0 0 2px #000, 0 0 3px #000; white-space: nowrap; }
+.prob-label { position: absolute; bottom: 0; right: 1px; line-height: 1; color: #4caf50; pointer-events: none; font-weight: bold; text-shadow: 0 0 2px #000, 0 0 3px #000; white-space: nowrap; }
+
+.action-menu { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.action-menu .main-btn { background: #3a4a6a; min-width: 70px; }
+.action-menu .sub-btn { background: #2a3a5a; font-size: 0.8rem; padding: 4px 8px; }
+.action-menu .sub-btn:hover { background: #4a6a8a; }
+.feedback { font-size: 1.2rem; font-weight: bold; padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; min-height: 3rem; transition: opacity 0.5s; }
+.feedback.success { color: #4caf50; background: #1e3a1e; }
+.feedback.fail { color: #f44336; background: #3a1e1e; }
+.feedback.info { color: #ffdd4a; background: #3a3a1e; }
+
+#eventPopup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); border: 2px solid #ffdd4a; border-radius: 16px; padding: 16px 28px; z-index: 200; display: none; max-width: 90%; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.8); font-size: 1.2rem; font-weight: bold; color: #fff; pointer-events: none; }
+#eventPopup.show { display: block; animation: popIn 0.3s ease; }
+@keyframes popIn { from { opacity: 0; transform: translateX(-50%) scale(0.8); } to { opacity: 1; transform: translateX(-50%) scale(1); } }
+
+#diploModal .modal-content { max-width: 420px; text-align: center; border: 2px solid #ffdd4a; box-shadow: 0 8px 40px rgba(255,221,74,0.15); }
+#diploModal h3 { color: #ffdd4a; margin-bottom: 16px; font-size: 1.15rem; letter-spacing: 1px; }
+#diploModal .diplo-msg { font-size: 1rem; margin-bottom: 24px; line-height: 1.7; color: #c8d0e0; }
+#diploModal .diplo-accept { background: #2d6a4f; min-width: 90px; font-weight: bold; }
+#diploModal .diplo-accept:hover { background: #40916c; }
+#diploModal .diplo-reject { background: #6a2d2d; min-width: 90px; font-weight: bold; }
+#diploModal .diplo-reject:hover { background: #914040; }
+
+#exitModal .modal-content { max-width: 460px; text-align: center; border: 2px solid #ffdd4a; box-shadow: 0 8px 40px rgba(255,221,74,0.15); }
+#exitModal h3 { color: #ffdd4a; margin-bottom: 16px; font-size: 1.15rem; letter-spacing: 1px; }
+#exitModal .exit-msg { font-size: 1rem; margin-bottom: 24px; line-height: 1.7; color: #c8d0e0; }
+#exitModal .exit-save { background: #2d6a4f; min-width: 110px; font-weight: bold; }
+#exitModal .exit-save:hover:not(:disabled) { background: #40916c; }
+#exitModal .exit-save:disabled { opacity: 0.45; cursor: not-allowed; }
+#exitModal .exit-nosave { background: #6a2d2d; min-width: 110px; }
+#exitModal .exit-nosave:hover { background: #914040; }
+#exitModal .exit-cancel { background: #3a4a6a; min-width: 80px; }
+#exitModal .exit-cancel:hover { background: #4f6290; }
+
+#styledModal .modal-content { max-width: 440px; text-align: center; border: 2px solid #ffdd4a; box-shadow: 0 8px 40px rgba(255,221,74,0.15); }
+#styledModal h3 { color: #ffdd4a; margin-bottom: 16px; font-size: 1.05rem; letter-spacing: 1px; }
+#styledModal .styled-msg { font-size: 0.95rem; margin-bottom: 24px; line-height: 1.7; color: #c8d0e0; white-space: pre-wrap; }
+#styledModal .styled-primary { background: #3a4a6a; min-width: 100px; font-weight: bold; }
+#styledModal .styled-primary:hover { background: #4f6290; }
+
+#saveSlotModal .modal-content { max-width: 640px; border: 2px solid #ffdd4a; box-shadow: 0 8px 40px rgba(255,221,74,0.15); }
+#saveSlotModal h3 { color: #ffdd4a; margin-bottom: 16px; font-size: 1.15rem; letter-spacing: 1px; text-align: center; }
+#saveSlotsList { display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto; padding: 4px; }
+.save-slot { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: #1e2537; border-radius: 10px; border: 1px solid #3d465a; transition: border-color 0.2s; }
+.save-slot:hover { border-color: #4f6290; }
+.save-slot.empty { opacity: 0.65; }
+.save-slot.current { border-color: #ffdd4a; box-shadow: 0 0 8px rgba(255,221,74,0.3); }
+.save-slot .slot-num { font-weight: bold; color: #ffdd4a; font-size: 0.9rem; min-width: 44px; }
+.save-slot .slot-info { flex: 1; font-size: 0.82rem; line-height: 1.5; color: #c8d0e0; }
+.save-slot .slot-info .slot-meta { color: #7f8bb3; font-size: 0.75rem; }
+.save-slot .slot-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.save-slot .slot-actions button { padding: 4px 10px; font-size: 0.78rem; }
+.save-slot .slot-actions .slot-save { background: #2d6a4f; }
+.save-slot .slot-actions .slot-save:hover:not(:disabled) { background: #40916c; }
+.save-slot .slot-actions .slot-save:disabled { opacity: 0.4; cursor: not-allowed; }
+.save-slot .slot-actions .slot-load { background: #3a4a6a; }
+.save-slot .slot-actions .slot-load:hover:not(:disabled) { background: #4f6290; }
+.save-slot .slot-actions .slot-load:disabled { opacity: 0.4; cursor: not-allowed; }
+.save-slot .slot-actions .slot-del { background: #6a2d2d; }
+.save-slot .slot-actions .slot-del:hover { background: #914040; }
+
+#pauseBtn { background: #8a6a2a; }
+#pauseBtn:hover { background: #aa8a3a; }
+#pauseBtn.paused { background: #2d6a4f; }
+#pauseBtn.paused:hover { background: #40916c; }
+
+#difficultySlider { width: 180px; }
+#difficultyLabel { display: inline-block; min-width: 48px; text-align: center; color: #ffdd4a; font-weight: bold; }
+
+#tutorialBtn { background: #4a6a8a; }
+#tutorialBtn:hover { background: #5a7a9a; }
+#simulationBtn { background: #5a4a8a; }
+#simulationBtn:hover { background: #6a5a9a; }
+#manageSaveBtn { background: #3a5a4a; }
+#manageSaveBtn:hover { background: #4a7a5a; }
+
+#saveBtn { background: #4a6a3a; }
+#saveBtn:hover { background: #5a8a4a; }
+#exitBtn { background: #6a3a3a; }
+#exitBtn:hover { background: #8a4a4a; }
+
+#tutorialHighlight { position: fixed; border: 3px solid #ffdd4a; border-radius: 8px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.55), 0 0 20px #ffdd4a; z-index: 399; pointer-events: none; transition: left 0.25s, top 0.25s, width 0.25s, height 0.25s; display: none; }
+
+#tutorialPanel { border: 2px solid #ffdd4a !important; background: rgba(30, 37, 55, 0.98) !important; display: none; }
+#tutorialPanel.visible { display: block; }
+#tutorialPanel .tut-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+#tutorialPanel .tut-title { color: #ffdd4a; font-size: 1rem; font-weight: bold; }
+#tutorialPanel .tut-progress { font-size: 0.72rem; color: #7f8bb3; }
+#tutorialPanel .tut-text { font-size: 0.85rem; line-height: 1.7; color: #c8d0e0; margin-bottom: 12px; white-space: pre-wrap; }
+#tutorialPanel .tut-text b { color: #ffdd4a; }
+#tutorialPanel .tut-actions { display: flex; justify-content: flex-end; gap: 10px; }
+#tutorialPanel .tut-next { background: #2d6a4f; min-width: 110px; font-weight: bold; }
+#tutorialPanel .tut-next:hover:not(:disabled) { background: #40916c; }
+#tutorialPanel .tut-next:disabled { opacity: 0.55; cursor: not-allowed; }
+#tutorialPanel .tut-skip { background: #6a2d2d; }
+#tutorialPanel .tut-skip:hover { background: #914040; }
+
+.tut-progress-tag { border: 2px solid #ffdd4a !important; background: #3a3a1e !important; }
+.tut-progress-tag .tut-tag-title { color: #ffdd4a; font-weight: bold; }
+
+@media (max-width: 700px) { .col { min-width: 100%; } .main-title { font-size: 1.6rem; letter-spacing: 3px; } }
+</style>
+</head>
+<body>
+<div id="app">
+    <div id="setup" class="panel">
+        <div class="main-title-wrap">
+            <h1 class="main-title">方格纸上的战争</h1>
+            <p class="main-subtitle">开发者：<a href="https://mgd-personal.rth1.xyz" target="_blank" rel="noopener">Mangod_Zhang（MGDZ）</a></p>
+        </div>
+        <h3>⚙️ 游戏设置</h3>
+        <div class="flex">
+            <div class="col">
+                <label>地图宽 <input type="number" id="mapW" value="10" min="4" max="50"></label>
+                <label>地图高 <input type="number" id="mapH" value="10" min="4" max="50"></label>
+                <label>玩家数 <input type="number" id="playerCnt" value="4" min="2" max="10"></label>
+            </div>
+            <div class="col">
+                <label>你的名字 <input type="text" id="playerName" value="Player" pattern="[A-Za-z0-9_]+"></label>
+                <label>你的颜色 <input type="color" id="playerColor" value="#e74c3c"></label>
+            </div>
+            <div class="col">
+                <label>难度
+                    <input type="range" id="difficultySlider" min="0" max="1" step="0.01" value="0.5" list="difficultyTicks">
+                    <span id="difficultyLabel">普通</span>
+                </label>
+                <datalist id="difficultyTicks">
+                    <option value="0"></option>
+                    <option value="0.25"></option>
+                    <option value="0.5"></option>
+                    <option value="0.75"></option>
+                    <option value="1"></option>
+                </datalist>
+                <div style="margin-top:8px;">
+                    <button id="startBtn">开始游戏</button>
+                    <button id="tutorialBtn">新手教程</button>
+                    <button id="simulationBtn">🤖 AI 模拟</button>
+                    <button id="manageSaveBtn">💾 存档管理</button>
+                    <button id="resetBtn">重置</button>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:20px; border-top:1px solid #3d465a; padding-top:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h4 style="margin:0;">🤖 AI角色列表</h4>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button id="addAI">+ 自定义</button>
+                    <button id="randomSelect">随机勾选</button>
+                    <button id="randomFromSelected">从已选随机</button>
+                    <button id="clearSelect">清空勾选</button>
+                </div>
+            </div>
+            <div style="max-height:200px; overflow-y:auto; margin-top:8px;">
+                <table id="aiTable">
+                    <thead><tr><th>选择</th><th>名称</th><th>描述</th><th>颜色</th><th>操作</th></tr></thead>
+                    <tbody id="aiTableBody"></tbody>
+                </table>
+            </div>
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; margin-top:8px;">
+                <span id="selectedCount">已选 0</span>
+                <span>需要 <span id="neededCount">0</span> 个AI</span>
+                <div class="config-actions">
+                    <button id="exportConfig">导出配置</button>
+                    <button id="importBtn">导入配置</button>
+                    <input type="file" id="importFile" accept=".json">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="game">
+        <div id="statusBar"></div>
+        <div class="delay-control">
+            <label>行动间隔</label>
+            <input type="range" id="actionDelaySlider" min="0.1" max="3" step="0.1" value="0.8">
+            <span id="actionDelayDisplay">0.8</span>
+            <label>战斗间隔</label>
+            <input type="range" id="combatDelaySlider" min="0.05" max="2" step="0.05" value="0.2">
+            <span id="combatDelayDisplay">0.2</span>
+            <label style="margin-left:8px; font-size:0.85rem;"><input type="checkbox" id="mergeOwnWarsCheckbox" style="margin-right:4px;">合并自己的战争</label>
+            <button id="saveBtn" style="margin-left:8px;">💾 存档</button>
+            <button id="pauseBtn" style="margin-left:4px; display:none;">⏸ 暂停</button>
+            <button id="exitBtn" style="margin-left:4px;">🚪 退出</button>
+            <span style="margin-left:auto; font-size:1rem;">回合 <span id="turnDisplay">0</span></span>
+            <span class="zoom-hint">滚轮/双指缩放 · 拖动平移 · 缩放 <span id="zoomDisplay">100%</span></span>
+        </div>
+        <div id="feedbackArea" class="feedback info">准备就绪</div>
+        <div class="flex">
+            <div class="col" style="flex:2; position:relative;">
+                <div class="panel">
+                    <h3>战场</h3>
+                    <div class="grid-wrap" id="mapContainer"></div>
+                </div>
+            </div>
+            <div class="col" style="flex:1;">
+                <div class="panel">
+                    <h3>操作</h3>
+                    <div id="actionPanel">
+                        <div class="action-menu" id="mainMenu"></div>
+                        <div id="subMenu" style="margin-top:8px;"></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>战报</h3>
+                    <div class="log" id="logBox">游戏开始</div>
+                </div>
+                <div class="panel" id="tutorialPanel">
+                    <div class="tut-header">
+                        <span class="tut-title"></span>
+                        <span class="tut-progress"></span>
+                    </div>
+                    <div class="tut-text"></div>
+                    <div class="tut-actions">
+                        <button class="tut-skip" id="tutSkipBtn">退出教程</button>
+                        <button class="tut-next" id="tutNextBtn">下一步 →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="eventPopup"></div>
+
+<div class="modal" id="diploModal">
+    <div class="modal-content">
+        <h3>📜 外交请求</h3>
+        <p class="diplo-msg"></p>
+        <div class="modal-actions" style="justify-content: center; gap: 16px;">
+            <button class="diplo-accept">✓ 接受</button>
+            <button class="diplo-reject">✗ 拒绝</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="aiModal">
+    <div class="modal-content">
+        <h3>自定义AI</h3>
+        <label>名称 <input type="text" id="newAIName" placeholder="仅英文数字下划线"></label>
+        <label>描述 <input type="text" id="newAIDesc"></label>
+        <label>颜色 <input type="color" id="newAIColor" value="#3498db"></label>
+        <label>侵略性 (Agg) <div class="range-row"><input type="range" id="newAIAgg" min="0" max="1" step="0.01" value="0.5"><span id="newAIAggVal">0.50</span></div></label>
+        <label>社交性 (Soc) <div class="range-row"><input type="range" id="newAISoc" min="0" max="1" step="0.01" value="0.5"><span id="newAISocVal">0.50</span></div></label>
+        <label>谨慎度 (Cau) <div class="range-row"><input type="range" id="newAICau" min="0" max="1" step="0.01" value="0.5"><span id="newAICauVal">0.50</span></div></label>
+        <label>科技欲 (Tech) <div class="range-row"><input type="range" id="newAITech" min="0" max="1" step="0.01" value="0.5"><span id="newAITechVal">0.50</span></div></label>
+        <label>扩张欲 (Exp) <div class="range-row"><input type="range" id="newAIExp" min="0" max="1" step="0.01" value="0.5"><span id="newAIExpVal">0.50</span></div></label>
+        <div class="modal-actions">
+            <button id="modalCancel">取消</button>
+            <button id="modalConfirm">确定</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="exitModal">
+    <div class="modal-content">
+        <h3>🚪 退出游戏</h3>
+        <p class="exit-msg">是否保存当前进度？</p>
+        <div class="modal-actions" style="justify-content: center; gap: 12px; flex-wrap: wrap;">
+            <button class="exit-cancel" id="exitCancelBtn">取消</button>
+            <button class="exit-nosave" id="exitNoSaveBtn">不保存退出</button>
+            <button class="exit-save" id="exitSaveBtn">保存并退出</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="saveSlotModal">
+    <div class="modal-content">
+        <h3>💾 存档管理</h3>
+        <div id="saveSlotsList"></div>
+        <div class="modal-actions" style="justify-content: center; margin-top: 20px;">
+            <button id="saveSlotCloseBtn" style="min-width: 100px;">关闭</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="styledModal">
+    <div class="modal-content">
+        <h3 id="styledModalTitle">提示</h3>
+        <p class="styled-msg" id="styledModalMsg"></p>
+        <div class="modal-actions" style="justify-content: center;">
+            <button class="styled-primary" id="styledModalOk">确定</button>
+        </div>
+    </div>
+</div>
+
+<div id="tutorialHighlight"></div>
+
+<script>
+// =====================================================================
+// 工具函数
+// =====================================================================
+function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
+function manhattan(a, b) { return Math.abs(a.x - b.x) + Math.abs(a.y - b.y); }
+function remoteHitProb(d, D) {
+    if (D <= 0) return d === 0 ? 1 : 0;
+    var prob = (D + 1 - d) / (D + 1);
+    return Math.max(0, Math.min(1, prob));
+}
+function cname(p) {
+    if (!p) return '';
+    return '<span style="color:' + p.color + '; font-weight:bold;">' + p.name + '</span>';
+}
+
+var DEBUG_AI_SCORES = false;
+var diploPaused = false;
+var zoomLevel = 1.0;
+var MIN_ZOOM = 0.5;
+var MAX_ZOOM = 3.0;
+var LABEL_RATIO = 0.3;
+var simulationPaused = false;
+
+var QUANTILE_TABLE = {
+    'expand':           { p10: 5,  p25: 10, p50: 20,  p75: 35,  p90: 165 },
+    'recruit':          { p10: 8,  p25: 25, p50: 55,  p75: 95,  p90: 150 },
+    'research_attack':  { p10: 8,  p25: 20, p50: 45,  p75: 85,  p90: 140 },
+    'research_defense': { p10: 8,  p25: 20, p50: 45,  p75: 85,  p90: 140 },
+    'ally':             { p10: 15, p25: 35, p50: 65,  p75: 110, p90: 180 },
+    'war':              { p10: 0,  p25: 0,  p50: 15,  p75: 50,  p90: 100 },
+    'unally':           { p10: 40, p25: 70, p50: 110, p75: 170, p90: 250 },
+    'peace':            { p10: 0,  p25: 0,  p50: 15,  p75: 45,  p90: 80 }
+};
+
+function estimatePercentile(rawScore, actionType) {
+    var q = QUANTILE_TABLE[actionType];
+    if (!q) return 0.5;
+    var s = Math.max(0, rawScore);
+    if (s <= q.p10) return 0.10 * (s / (q.p10 || 1));
+    if (s <= q.p25) return 0.10 + 0.15 * (s - q.p10) / (q.p25 - q.p10);
+    if (s <= q.p50) return 0.25 + 0.25 * (s - q.p25) / (q.p50 - q.p25);
+    if (s <= q.p75) return 0.50 + 0.25 * (s - q.p50) / (q.p75 - q.p50);
+    if (s <= q.p90) return 0.75 + 0.15 * (s - q.p75) / (q.p90 - q.p75);
+    return 0.90 + 0.10 * Math.min(1, (s - q.p90) / Math.max(q.p90, 1));
+}
+
+var DIFFICULTY_LABELS = ['难', '较难', '普通', '较易', '简单'];
+document.getElementById('difficultySlider').addEventListener('input', function() {
+    var val = parseFloat(this.value);
+    var idx = Math.round(val * 4);
+    document.getElementById('difficultyLabel').textContent = DIFFICULTY_LABELS[idx];
+});
+
+function showDiploRequest(msg, onAccept, onReject) {
+    var modal = document.getElementById('diploModal');
+    modal.querySelector('.diplo-msg').textContent = msg;
+    modal.classList.add('visible');
+    var acceptBtn = modal.querySelector('.diplo-accept');
+    var rejectBtn = modal.querySelector('.diplo-reject');
+    var newAccept = acceptBtn.cloneNode(true);
+    var newReject = rejectBtn.cloneNode(true);
+    acceptBtn.parentNode.replaceChild(newAccept, acceptBtn);
+    rejectBtn.parentNode.replaceChild(newReject, rejectBtn);
+    newAccept.addEventListener('click', function() { modal.classList.remove('visible'); if (onAccept) onAccept(); });
+    newReject.addEventListener('click', function() { modal.classList.remove('visible'); if (onReject) onReject(); });
+}
+
+async function waitForDiplo() {
+    while (diploPaused) await new Promise(function(resolve) { setTimeout(resolve, 50); });
+}
+async function waitForSimulationResume() {
+    while (simulationPaused) await new Promise(function(resolve) { setTimeout(resolve, 80); });
+}
+
+var INITIAL_AIS = [
+    { name: 'Mangod', desc: '比较喜欢科技，比较爱和平且行事谨慎', color: '#FF59BA', Agg:0.5, Soc:0.7, Cau:0.8, Tech:0.8, Exp:0.8 },
+    { name: 'Ganymede', desc: '和平的人，只喜欢自己扩张和壮大自己的队伍，一般不主动招惹他人', color: '#522c00', Agg:0.1, Soc:0.9, Cau:0.2, Tech:0.5, Exp:0.9 },
+    { name: 'Ki729', desc: '比较喜欢科学研究，并且较为和平', color: 'darkblue', Agg:0.5, Soc:0.7, Cau:0.5, Tech:0.7, Exp:0.5 },
+    { name: 'CyanDragon', desc: '比较喜欢攻击，扩张，但对科学不太感兴趣，自然地喜欢招人', color: 'cyan', Agg:0.9, Soc:0.5, Cau:0.2, Tech:0.2, Exp:0.9 },
+    { name: 'ZT', desc: '不算特别喜欢进攻，但是会保护首都，对科学很有兴趣', color: '#6c00c5', Agg:0.6, Soc:0.5, Cau:0.7, Tech:0.8, Exp:0.8 },
+    { name: 'HotPink', desc: '和平，貌似不算那么喜欢科技，行事比较大方', color: '#FF80BF', Agg:0.5, Soc:0.9, Cau:0.2, Tech:0.6, Exp:0.5 },
+    { name: 'Sakura', desc: '喜欢进攻，很有好胜心，所以会招兵搞科研，还会扩张自己', color: '#FFB2FF', Agg:0.9, Soc:0.3, Cau:0.2, Tech:0.8, Exp:0.9 },
+    { name: 'Mango', desc: '对世界不满，所以搞科研去提升自己', color: '#F2FF66', Agg:1.0, Soc:0.0, Cau:0.5, Tech:0.9, Exp:0.5 },
+    { name: 'Fridge', desc: '喜欢研究科学，爱好和平并且不爱进攻，行事谨慎', color: '#66ccff', Agg:0.1, Soc:0.8, Cau:0.8, Tech:0.9, Exp:0.5 },
+    { name: 'posterSeal', desc: '一只不怎么会科研的海豹，但十分和平', color: '#d0d0d0', Agg:0.5, Soc:0.9, Cau:0.5, Tech:0.2, Exp:0.5 }
+];
+
+var aiList = [];
+var selectedAISet = new Set();
+var nextCustomId = 1000;
+
+function loadAIList() {
+    try {
+        var saved = localStorage.getItem('myAIData');
+        if (saved) {
+            var parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                var initialNames = new Set(INITIAL_AIS.map(function(a) { return a.name; }));
+                for (var k = 0; k < parsed.length; k++) {
+                    var a = parsed[k];
+                    if (a.isCustom === undefined) a.isCustom = !initialNames.has(a.name);
+                    if (a.id === undefined) a.id = a.isCustom ? 'custom_' + (nextCustomId++) : a.name;
+                }
+                return parsed;
+            }
+        }
+    } catch(e) { console.warn('读取存储失败', e); }
+    return INITIAL_AIS.map(function(a) { var c = {}; for (var k in a) c[k] = a[k]; c.isCustom = false; c.id = a.name; return c; });
+}
+
+function saveAIList() {
+    var toSave = aiList.map(function(a) {
+        return {
+            name: a.name, desc: a.desc, color: a.color,
+            Agg: a.Agg, Soc: a.Soc, Cau: a.Cau, Tech: a.Tech, Exp: a.Exp,
+            isCustom: a.isCustom
+        };
+    });
+    localStorage.setItem('myAIData', JSON.stringify(toSave));
+}
+
+function initAIList() {
+    aiList = loadAIList();
+    if (!aiList || aiList.length === 0) {
+        aiList = INITIAL_AIS.map(function(a) { var c = {}; for (var k in a) c[k] = a[k]; c.isCustom = false; c.id = a.name; return c; });
+        saveAIList();
+    }
+    var maxId = aiList.reduce(function(max, a) {
+        if (a.isCustom && a.id && a.id.indexOf('custom_') === 0) {
+            var num = parseInt(a.id.split('_')[1]);
+            return Math.max(max, num);
+        }
+        return max;
+    }, 1000);
+    nextCustomId = maxId + 1;
+    selectedAISet.clear();
+    renderAIList();
+}
+
+function renderAIList() {
+    var tbody = document.getElementById('aiTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    for (var i = 0; i < aiList.length; i++) {
+        var ai = aiList[i];
+        var checked = selectedAISet.has(ai.name) ? 'checked' : '';
+        var colorStyle = ai.color ? 'background:' + ai.color + ';' : '';
+        var row = document.createElement('tr');
+        row.innerHTML =
+            '<td><input type="checkbox" class="ai-check" data-name="' + ai.name + '" ' + checked + '></td>' +
+            '<td>' + ai.name + '</td>' +
+            '<td>' + ai.desc + '</td>' +
+            '<td><span class="color-preview" style="' + colorStyle + '"></span></td>' +
+            '<td class="ai-actions">' + (ai.isCustom ? '<button class="del-ai" data-name="' + ai.name + '">删除</button>' : '') + '</td>';
+        tbody.appendChild(row);
+    }
+    tbody.querySelectorAll('.ai-check').forEach(function(cb) {
+        cb.addEventListener('change', function() {
+            var name = this.dataset.name;
+            if (this.checked) selectedAISet.add(name);
+            else selectedAISet.delete(name);
+            updateSelectedCount();
+        });
+    });
+    tbody.querySelectorAll('.del-ai').forEach(function(btn) {
+        btn.addEventListener('click', function() { deleteAI(this.dataset.name); });
+    });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    var cnt = selectedAISet.size;
+    var needed = Math.max(0, parseInt(document.getElementById('playerCnt').value) - 1);
+    document.getElementById('selectedCount').textContent = '已选 ' + cnt;
+    document.getElementById('neededCount').textContent = needed;
+}
+
+function deleteAI(name) {
+    if (!confirm('删除AI "' + name + '"？')) return;
+    var idx = aiList.findIndex(function(a) { return a.name === name; });
+    if (idx === -1) return;
+    if (!aiList[idx].isCustom) { alert('不能删除初始AI'); return; }
+    aiList.splice(idx, 1);
+    selectedAISet.delete(name);
+    saveAIList();
+    renderAIList();
+}
+
+function addCustomAI(name, desc, color, Agg, Soc, Cau, Tech, Exp) {
+    if (aiList.some(function(a) { return a.name === name; })) { alert('名称已存在'); return false; }
+    aiList.push({ name: name, desc: desc, color: color, Agg: Agg, Soc: Soc, Cau: Cau, Tech: Tech, Exp: Exp, isCustom: true, id: 'custom_' + (nextCustomId++) });
+    saveAIList();
+    renderAIList();
+    return true;
+}
+
+function randomSelect(count) {
+    var available = aiList.filter(function(a) { return !selectedAISet.has(a.name); });
+    if (available.length === 0) return;
+    var needed = Math.min(count, available.length);
+    var shuffled = available.slice();
+    for (var i = shuffled.length-1; i>0; i--) {
+        var j = rand(0, i);
+        var t = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = t;
+    }
+    for (var k=0; k<needed; k++) selectedAISet.add(shuffled[k].name);
+    renderAIList();
+}
+
+function randomFromSelected(count) {
+    var selected = aiList.filter(function(a) { return selectedAISet.has(a.name); });
+    if (selected.length === 0) return;
+    var needed = Math.min(count, selected.length);
+    var shuffled = selected.slice();
+    for (var i = shuffled.length-1; i>0; i--) {
+        var j = rand(0, i);
+        var t = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = t;
+    }
+    selectedAISet.clear();
+    for (var k=0; k<needed; k++) selectedAISet.add(shuffled[k].name);
+    renderAIList();
+}
+
+function exportConfig() {
+    var data = JSON.stringify(aiList, null, 2);
+    var blob = new Blob([data], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'ai_config.json';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function importConfig(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            var imported = JSON.parse(e.target.result);
+            if (!Array.isArray(imported)) throw new Error('格式错误');
+            for (var k = 0; k < imported.length; k++) {
+                var a = imported[k];
+                if (typeof a.name !== 'string' || typeof a.Agg !== 'number') throw new Error('字段不完整');
+            }
+            var initialNames = new Set(INITIAL_AIS.map(function(a) { return a.name; }));
+            var newList = imported.map(function(a) {
+                var isInit = initialNames.has(a.name);
+                var c = {}; for (var kk in a) c[kk] = a[kk];
+                c.isCustom = !isInit;
+                c.id = isInit ? a.name : ('custom_' + (nextCustomId++));
+                return c;
+            });
+            aiList = newList;
+            selectedAISet.clear();
+            saveAIList();
+            renderAIList();
+            alert('导入成功');
+        } catch(err) { alert('导入失败：' + err.message); }
+    };
+    reader.readAsText(file);
+}
+
+function showModal() {
+    document.getElementById('aiModal').classList.add('visible');
+    document.getElementById('newAIName').value = '';
+    document.getElementById('newAIDesc').value = '';
+    document.getElementById('newAIColor').value = '#3498db';
+    ['Agg','Soc','Cau','Tech','Exp'].forEach(function(id) {
+        document.getElementById('newAI' + id).value = '0.5';
+        document.getElementById('newAI' + id + 'Val').textContent = '0.50';
+    });
+}
+function hideModal() { document.getElementById('aiModal').classList.remove('visible'); }
+
+document.querySelectorAll('.range-row input[type="range"]').forEach(function(slider) {
+    var span = slider.nextElementSibling;
+    slider.addEventListener('input', function() { span.textContent = parseFloat(this.value).toFixed(2); });
+});
+
+document.getElementById('addAI').addEventListener('click', showModal);
+document.getElementById('modalCancel').addEventListener('click', hideModal);
+document.getElementById('modalConfirm').addEventListener('click', function() {
+    var name = document.getElementById('newAIName').value.trim();
+    var desc = document.getElementById('newAIDesc').value.trim();
+    var color = document.getElementById('newAIColor').value;
+    var Agg = parseFloat(document.getElementById('newAIAgg').value);
+    var Soc = parseFloat(document.getElementById('newAISoc').value);
+    var Cau = parseFloat(document.getElementById('newAICau').value);
+    var Tech = parseFloat(document.getElementById('newAITech').value);
+    var Exp = parseFloat(document.getElementById('newAIExp').value);
+    if (!name || !/^[A-Za-z0-9_]+$/.test(name)) { alert('名称仅允许英文数字下划线'); return; }
+    if (addCustomAI(name, desc, color, Agg, Soc, Cau, Tech, Exp)) hideModal();
+});
+
+document.getElementById('randomSelect').addEventListener('click', function() {
+    var needed = Math.max(0, parseInt(document.getElementById('playerCnt').value) - 1);
+    var current = selectedAISet.size;
+    var toSelect = Math.max(0, needed - current);
+    if (toSelect === 0) { alert('已满足'); return; }
+    randomSelect(toSelect);
+});
+document.getElementById('randomFromSelected').addEventListener('click', function() {
+    var needed = Math.max(0, parseInt(document.getElementById('playerCnt').value) - 1);
+    randomFromSelected(needed);
+});
+document.getElementById('clearSelect').addEventListener('click', function() {
+    selectedAISet.clear();
+    renderAIList();
+});
+document.getElementById('exportConfig').addEventListener('click', exportConfig);
+document.getElementById('importBtn').addEventListener('click', function() { document.getElementById('importFile').click(); });
+document.getElementById('importFile').addEventListener('change', function(e) {
+    if (this.files.length > 0) { importConfig(this.files[0]); this.value = ''; }
+});
+
+var eventPopupTimer = null;
+function showEventPopup(msg, duration) {
+    if (duration === undefined) duration = 3000;
+    var popup = document.getElementById('eventPopup');
+    popup.textContent = msg;
+    popup.classList.add('show');
+    clearTimeout(eventPopupTimer);
+    eventPopupTimer = setTimeout(function() { popup.classList.remove('show'); }, duration);
+}
+
+// =====================================================================
+// 风格化提示 / 退出
+// =====================================================================
+function showStyledAlert(title, msg, onClose) {
+    var modal = document.getElementById('styledModal');
+    document.getElementById('styledModalTitle').textContent = title;
+    document.getElementById('styledModalMsg').textContent = msg;
+    var okBtn = document.getElementById('styledModalOk');
+    var newOk = okBtn.cloneNode(true);
+    okBtn.parentNode.replaceChild(newOk, okBtn);
+    newOk.addEventListener('click', function() {
+        modal.classList.remove('visible');
+        if (onClose) onClose();
+    });
+    modal.classList.add('visible');
+}
+
+function exitToMenu() {
+    if (G) G.finished = true;
+    G = null;
+    zoomLevel = 1.0;
+    diploPaused = false;
+    simulationPaused = false;
+    selectedInfoPlayer = -1;
+    tutorial.active = false;
+    tutorial.step = 0;
+    document.getElementById('game').classList.remove('active');
+    document.getElementById('setup').style.display = 'block';
+    document.getElementById('logBox').innerHTML = '';
+    document.getElementById('tutorialPanel').classList.remove('visible');
+    document.getElementById('pauseBtn').style.display = 'none';
+    highlightElement(null);
+    setFeedback('', 'info');
+    if (window._resizeHandler) {
+        window.removeEventListener('resize', window._resizeHandler);
+        window._resizeHandler = null;
+    }
+    updateContinueButton();
+}
+
+function showExitDialog() {
+    if (!G) { exitToMenu(); return; }
+    simulationPaused = true;
+    var modal = document.getElementById('exitModal');
+    var saveBtn = document.getElementById('exitSaveBtn');
+    var noSaveBtn = document.getElementById('exitNoSaveBtn');
+    var cancelBtn = document.getElementById('exitCancelBtn');
+    var canSave = !tutorial.active && G && !G.finished;
+
+    var newSave = saveBtn.cloneNode(true);
+    var newNoSave = noSaveBtn.cloneNode(true);
+    var newCancel = cancelBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSave, saveBtn);
+    noSaveBtn.parentNode.replaceChild(newNoSave, noSaveBtn);
+    cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+
+    newSave.disabled = !canSave;
+    if (!canSave) newSave.title = '当前状态无法存档';
+
+    newCancel.addEventListener('click', function() {
+        modal.classList.remove('visible');
+    });
+    newNoSave.addEventListener('click', function() { modal.classList.remove('visible'); exitToMenu(); });
+    newSave.addEventListener('click', function() {
+        modal.classList.remove('visible');
+        showSaveSlotModal(true);
+    });
+
+    modal.classList.add('visible');
+}
+
+// =====================================================================
+// 存档槽管理
+// =====================================================================
+var SAVE_SLOT_COUNT = 10;
+var SAVE_SLOT_PREFIX = 'squareWarSave_slot_';
+
+function getSlotKey(idx) { return SAVE_SLOT_PREFIX + idx; }
+
+function readSlot(idx) {
+    try {
+        var raw = localStorage.getItem(getSlotKey(idx));
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch(e) { return null; }
+}
+
+function writeSlot(idx, data) {
+    try {
+        localStorage.setItem(getSlotKey(idx), JSON.stringify(data));
+        return true;
+    } catch(e) {
+        alert('存档失败：' + e.message);
+        return false;
+    }
+}
+
+function deleteSlot(idx) {
+    localStorage.removeItem(getSlotKey(idx));
+}
+
+function showSaveSlotModal(isSaving) {
+    var modal = document.getElementById('saveSlotModal');
+    renderSaveSlots(isSaving);
+    modal.classList.add('visible');
+}
+
+function renderSaveSlots(isSaving) {
+    var list = document.getElementById('saveSlotsList');
+    list.innerHTML = '';
+    var canSaveNow = isSaving && G && !G.finished && !tutorial.active;
+    for (var i = 0; i < SAVE_SLOT_COUNT; i++) {
+        var slot = readSlot(i);
+        var div = document.createElement('div');
+        div.className = 'save-slot' + (slot ? '' : ' empty');
+
+        var infoHtml;
+        if (slot) {
+            var timeStr = new Date(slot.savedAt).toLocaleString();
+            var modeTag = slot.simulationMode ? '<span style="color:#a890ff;">[AI模拟]</span> ' : '';
+            infoHtml =
+                '<div>' + modeTag + '回合 ' + slot.turn + ' · ' + slot.aliveCount + '人存活</div>' +
+                '<div class="slot-meta">' + timeStr + '</div>';
+        } else {
+            infoHtml = '<div class="slot-meta">空槽位</div>';
+        }
+
+        var actionsHtml = '';
+        if (canSaveNow) {
+            actionsHtml += '<button class="slot-save" data-slot="' + i + '" data-action="save">保存到此</button>';
+        }
+        if (slot) {
+            actionsHtml += '<button class="slot-load" data-slot="' + i + '" data-action="load">读取</button>';
+            actionsHtml += '<button class="slot-del" data-slot="' + i + '" data-action="del">删除</button>';
+        }
+
+        div.innerHTML =
+            '<div class="slot-num">槽 ' + (i + 1) + '</div>' +
+            '<div class="slot-info">' + infoHtml + '</div>' +
+            '<div class="slot-actions">' + actionsHtml + '</div>';
+
+        list.appendChild(div);
+    }
+
+    list.querySelectorAll('button[data-action]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var slotIdx = parseInt(this.dataset.slot);
+            var action = this.dataset.action;
+            if (action === 'save') doSaveToSlot(slotIdx);
+            else if (action === 'load') doLoadFromSlot(slotIdx);
+            else if (action === 'del') {
+                if (confirm('确定删除槽 ' + (slotIdx + 1) + ' 的存档？')) {
+                    deleteSlot(slotIdx);
+                    renderSaveSlots(isSaving);
+                    updateContinueButton();
+                }
+            }
+        });
+    });
+}
+
+document.getElementById('saveSlotCloseBtn').addEventListener('click', function() {
+    document.getElementById('saveSlotModal').classList.remove('visible');
+});
+
+function doSaveToSlot(slotIdx) {
+    if (!G) { showStyledAlert('提示', '没有正在进行的游戏'); return; }
+    if (G.finished) { showStyledAlert('提示', '游戏已结束，无需存档'); return; }
+    if (tutorial.active) { showStyledAlert('提示', '教程模式不能存档'); return; }
+    if (!G.simulationMode && !G.waitingForHuman) {
+        showStyledAlert('提示', '请等待 AI 回合结束后再存档');
+        return;
+    }
+    var existing = readSlot(slotIdx);
+    if (existing) {
+        if (!confirm('槽 ' + (slotIdx + 1) + ' 已有存档，确定覆盖？')) return;
+    }
+    try {
+        var data = {
+            version: 1,
+            savedAt: Date.now(),
+            turn: G.turn,
+            aliveCount: G.players.filter(function(p) { return p.alive; }).length,
+            simulationMode: !!G.simulationMode,
+            logHTML: document.getElementById('logBox').innerHTML,
+            state: G.serialize()
+        };
+        if (writeSlot(slotIdx, data)) {
+            setFeedback('💾 已保存到槽 ' + (slotIdx + 1), 'success');
+            renderSaveSlots(true);
+            updateContinueButton();
+        }
+    } catch(e) {
+        showStyledAlert('存档失败', e.message);
+    }
+}
+
+function doLoadFromSlot(slotIdx) {
+    var slot = readSlot(slotIdx);
+    if (!slot || !slot.state) { showStyledAlert('提示', '该槽位为空'); return; }
+    if (G && !G.finished) {
+        if (!confirm('当前游戏未保存，确定读取槽 ' + (slotIdx + 1) + ' 吗？')) return;
+    }
+    if (G) G.finished = true;
+    tutorial.active = false;
+    tutorial.step = 0;
+    diploPaused = false;
+    simulationPaused = false;
+    selectedInfoPlayer = -1;
+    zoomLevel = 1.0;
+    if (window._resizeHandler) {
+        window.removeEventListener('resize', window._resizeHandler);
+        window._resizeHandler = null;
+    }
+    try {
+        G = Game.deserialize(slot.state);
+        document.getElementById('saveSlotModal').classList.remove('visible');
+        document.getElementById('game').classList.add('active');
+        document.getElementById('setup').style.display = 'none';
+        if (slot.logHTML) {
+            document.getElementById('logBox').innerHTML = slot.logHTML;
+        } else {
+            document.getElementById('logBox').innerHTML = '';
+        }
+        G.addLog('【读档】槽 ' + (slotIdx + 1) + ' · 于 ' + new Date(slot.savedAt).toLocaleString());
+        document.getElementById('actionDelayDisplay').textContent = document.getElementById('actionDelaySlider').value;
+        document.getElementById('combatDelayDisplay').textContent = document.getElementById('combatDelaySlider').value;
+        window._resizeHandler = function() { renderGame(); };
+        window.addEventListener('resize', window._resizeHandler);
+        if (G.simulationMode && !G.finished) {
+            document.getElementById('pauseBtn').style.display = '';
+            document.getElementById('pauseBtn').textContent = '⏸ 暂停';
+            document.getElementById('pauseBtn').classList.remove('paused');
+            simulationPaused = false;
+        } else {
+            document.getElementById('pauseBtn').style.display = 'none';
+        }
+        renderGame();
+        setFeedback('读档成功，继续游戏', 'success');
+        if (G.simulationMode && !G.finished) {
+            G.autoPlay().then(function() { renderGame(); });
+        }
+    } catch(e) {
+        showStyledAlert('读档失败', e.message);
+    }
+}
+
+function updateContinueButton() {
+    var btn = document.getElementById('continueBtn');
+    if (!btn) return;
+    var latestIdx = -1;
+    var latestTime = 0;
+    for (var i = 0; i < SAVE_SLOT_COUNT; i++) {
+        var slot = readSlot(i);
+        if (slot && slot.savedAt > latestTime) {
+            latestTime = slot.savedAt;
+            latestIdx = i;
+        }
+    }
+    if (latestIdx === -1) {
+        btn.style.display = 'none';
+        return;
+    }
+    btn.style.display = '';
+    var slot = readSlot(latestIdx);
+    var timeStr = new Date(slot.savedAt).toLocaleString();
+    var modeTag = slot.simulationMode ? '[模拟] ' : '';
+    btn.textContent = '继续游戏 ' + modeTag + '（槽' + (latestIdx + 1) + ' · 回合' + slot.turn + ' · ' + slot.aliveCount + '人）';
+    btn.onclick = function() { doLoadFromSlot(latestIdx); };
+}
+
+function saveGame() {
+    if (!G) { showStyledAlert('提示', '没有正在进行的游戏'); return; }
+    if (G.finished) { showStyledAlert('提示', '游戏已结束，无需存档'); return; }
+    if (tutorial.active) { showStyledAlert('提示', '教程模式不能存档'); return; }
+    showSaveSlotModal(true);
+}
+
+document.getElementById('saveBtn').addEventListener('click', function() { saveGame(); });
+document.getElementById('exitBtn').addEventListener('click', showExitDialog);
+document.getElementById('manageSaveBtn').addEventListener('click', function() {
+    showSaveSlotModal(false);
+});
+
+// =====================================================================
+// 暂停/继续（AI 模拟）
+// =====================================================================
+document.getElementById('pauseBtn').addEventListener('click', function() {
+    if (!G || !G.simulationMode) return;
+    simulationPaused = !simulationPaused;
+    if (simulationPaused) {
+        this.textContent = '▶ 继续';
+        this.classList.add('paused');
+        setFeedback('⏸ 模拟已暂停', 'info');
+    } else {
+        this.textContent = '⏸ 暂停';
+        this.classList.remove('paused');
+        setFeedback('▶ 模拟继续', 'info');
+    }
+});
+
+// =====================================================================
+// 教程系统
+// =====================================================================
+var tutorial = { active: false, step: 0, pendingAdvance: false };
+var tutorialForce = { greenAcceptAlliance: true, blueMeleeLose: false, attackResearch5Count: 2, orangeRemoteLose: false };
+
+var TUTORIAL_STEPS = [
+    { title: '🎮 欢迎来到方格纸上的战争', text: '这是一款回合制策略游戏。目标很简单：<b>占领整张地图，消灭所有对手</b>。\n\n你现在看到的是一张 8×8 的方格战场。接下来会一步步带你熟悉操作，你只需按照提示操作即可。', highlight: null, next: 'manual' },
+    { title: '🗺️ 认识战场', text: '地图上的每个格子代表一块土地，颜色表示归属：\n• 深灰格子 = 无主之地\n• 彩色格子 = 某个玩家的领土\n• ★ = 玩家的首都\n\n格子<b>左下角的数字</b>是到<b>你的首都</b>的距离，远程攻击就是基于这个距离计算的。', highlight: '#mapContainer', next: 'manual' },
+    { title: '📊 认识状态栏', text: '顶部是玩家的全局信息卡片。每一张卡片显示：\n• 名字和颜色\n• 兵力 / 领土数 / 远程攻击 / 远程防御\n\n当某个玩家的<b>名字变成金色</b>时，说明轮到他行动了。', highlight: '#statusBar', next: 'manual' },
+    { title: '🌱 第一步：学习扩张', text: '扩张可以占领相邻的无主之地，是前期发展最重要的一步。\n\n<b>请点击"扩张"按钮，然后任意选择一个方向。</b>', highlight: '#mainMenu', next: 'action', allowed: { main: 'expand' } },
+    { title: '💰 第二步：学习征兵', text: '兵力是战斗的基础。征兵可以随机获得 <b>50 / 100 / 200 / 400</b> 兵力（概率 40% / 30% / 20% / 10%）。\n\n兵力越多，近战胜率越高。\n\n<b>请点击"征兵"按钮。</b>', highlight: '#mainMenu', next: 'action', allowed: { main: 'recruit' } },
+    { title: '🤝 第三步：与绿色结盟', text: '外交可以和其他玩家结盟或宣战。盟友在战争中会为你提供兵力加成和远程协助。\n\n左下角的绿色就在你的对角，去和他结盟吧。\n\n<b>请点击"外交" → "绿色" → "结盟"。</b>\n\n放心，我们说服了绿色，他绝对会同意的！', highlight: '#mainMenu', next: 'action', allowed: { main: 'diplomacy', sub: 'ally', target: 2 } },
+    { title: '✓ 结盟成功！', text: '你和绿色结盟了！绿色现在处于冻结状态，不会主动扩张或攻击。\n\n接下来，我们要向<b>右上角的蓝色</b>进军。', highlight: null, next: 'manual' },
+    { title: '🌱 扩张到蓝色', text: '蓝色位于右上角。请不断点击"扩张" → "右"，一步步向蓝色推进，直到你与蓝色接壤。\n\n<b>请点击"扩张"，然后选择"右"。</b>', highlight: '#mainMenu', next: 'conditional', check: function() { return G && G.players[1].alive && G.hasBorder(0, 1); }, allowed: { main: 'expand', dir: 'right' } },
+    { title: '⚔️ 第四步：宣战蓝色', text: '既然已经与蓝色接壤，现在是时候动手了。宣战会立刻把关系变为敌对，回合结算时会自动爆发战争。\n\n<b>请点击"外交" → "蓝色" → "宣战"。</b>', highlight: '#mainMenu', next: 'action', allowed: { main: 'diplomacy', sub: 'war', target: 1 } },
+    { title: '🎨 认识外交边框', text: '你刚和蓝色宣战了，注意他的首都（★）现在多了一圈<b>红色边框</b>——这代表你们处于敌对关系。\n\n外交边框颜色规则：\n• <span style="color:#4a9eff; font-weight:bold;">蓝色</span> = 同盟\n• <span style="color:#ffdd4a; font-weight:bold;">黄色</span> = 中立\n• <span style="color:#ff4a4a; font-weight:bold;">红色</span> = 敌对\n\n同时，你的首都（左上角）是<b>白色边框</b>，因为当前视角是你自己。', highlight: '#mapContainer', next: 'manual' },
+    { title: '👆 点击首都切换视角', text: '你可以<b>点击任意玩家的首都</b>来切换观察视角：\n\n• 点击对方首都 → 该玩家的首都变成白色边框，其他首都按你与他们的关系显示颜色\n• 左下角的距离数字会切换到该玩家视角\n• 右下角的概率标注也会切换到该玩家\n• 顶部状态栏中该玩家的卡片会高亮\n\n<b>请点击蓝色或绿色的首都试试看。</b>再点一次可以取消选中，回到你自己。', highlight: '#mapContainer', next: 'manual' },
+    { title: '⚔️ 近战消灭蓝色', text: '你和蓝色已经接壤，接下来会进行近战。近战胜率取决于双方总兵力。\n\n这次你必定赢，MGDZ为你保证！\n\n<b>点击下方"执行攻击"按钮继续。</b>', highlight: null, next: 'execute', action: 'meleeBlue' },
+    { title: '🔬 第五步：研究远程攻击（1/2）', text: '远程攻击可以从首都直接打击敌人领土，无需接壤。命中率随距离衰减：距离越近越容易命中。\n\n这次我们给骰子灌了铅，你的射程必定 +5。\n\n<b>请点击"科研" → "攻击"。</b>', highlight: '#mainMenu', next: 'action', allowed: { main: 'research', sub: 'research_attack' } },
+    { title: '🔬 第五步：研究远程攻击（2/2）', text: '再点一次，让射程继续增长。两次 +5 叠加后，你的远程攻击射程会达到 10，足以覆盖整张地图。\n\n<b>请再次点击"科研" → "攻击"。</b>', highlight: '#mainMenu', next: 'action', allowed: { main: 'research', sub: 'research_attack' } },
+    { title: '🛡️ 关于远程防御', text: '当敌人远程攻击你时，会进行两次判定：\n• <b>敌人的命中判定</b>：用他的远程攻击射程\n• <b>你的防御判定</b>：用你的远程防御射程\n\n只有敌人命中<b>且</b>你防御失败，敌人才会夺取你的领土。\n\n所以<b>远程防御同样重要</b>，它能大幅降低被远程夺取的风险。', highlight: null, next: 'manual' },
+    { title: '📈 右下角的概率标注', text: '在地图上属于其他玩家的格子，右下角会显示一个绿色百分数：\n\n这是<b>你从首都远程攻击该格的成功夺取概率</b>。\n\n计算公式：你的命中率 × (1 - 对方的防御率)。数值越大，越容易夺取。', highlight: '#mapContainer', next: 'manual' },
+    { title: '⚔️ 第六步：宣战橙色', text: '右下角的橙色也不安分。先宣战，然后用你的远程攻击教训他。\n\n<b>请点击"外交" → "橙色" → "宣战"。</b>', highlight: '#mainMenu', next: 'action', allowed: { main: 'diplomacy', sub: 'war', target: 3 } },
+    { title: '🎯 远程消灭橙色', text: '橙色位于右下角，正好在你的远程攻击射程内。\n\n这次你也必定赢，MGDZ仍然为你保证！\n\n<b>点击下方"执行远程攻击"按钮继续。</b>', highlight: null, next: 'execute', action: 'remoteOrange' },
+    { title: '🏰 第七步：学习迁都', text: '首都是<b>远程攻击的中心</b>——所有远程攻击都从首都出发，按距离计算命中率。\n\n当你的领土扩张后，可以让首都更靠近敌人，提高远程压制效率。\n\n<b>请点击"迁都"按钮试试看</b>（5 回合冷却，不消耗行动）。', highlight: '#mainMenu', next: 'action', allowed: { main: 'relocate' } },
+    { title: '💔 第八步：与绿色解盟', text: '接下来不会有人保证你必定胜利了，不过MGDZ相信你可以干掉绿色，逃离新手村！\n\n绿色将恢复正常行动，他会扩张、会反击。\n\n<b>请点击"外交" → "绿色" → "解盟"。</b>', highlight: '#mainMenu', next: 'action', allowed: { main: 'diplomacy', sub: 'unally', target: 2 } },
+    { title: '🎉 自由行动', text: '绿色恢复了行动！现在你可以自由操作，宣战、扩张、远程攻击……用任何方式消灭绿色吧。\n\n教程会在绿色被消灭后自动结束。', highlight: null, next: 'conditional', check: function() { return G && !G.players[2].alive; } },
+    { title: '🏆 教程完成', text: '恭喜你完成教程，成功逃离新手村！\n\n记住核心循环：<b>扩张 → 征兵 → 科研 → 外交 → 战争</b>。\n\n现在你可以开始正式对局了，祝你早日统一全图！', highlight: null, next: 'finish' }
+];
+
+function startTutorial() {
+    tutorial.active = true;
+    tutorial.step = 0;
+    tutorial.pendingAdvance = false;
+    tutorialForce = { greenAcceptAlliance: true, blueMeleeLose: false, attackResearch5Count: 2, orangeRemoteLose: false };
+    diploPaused = false;
+    simulationPaused = false;
+    selectedInfoPlayer = -1;
+    zoomLevel = 1.0;
+
+    var playersConfig = [
+        { human: true, name: '你', color: '#e74c3c', Agg:0.5, Soc:0.5, Cau:0.5, Tech:0.5, Exp:0.5 },
+        { human: false, name: '蓝色', color: '#3498db', Agg:0.5, Soc:0.5, Cau:0.5, Tech:0.5, Exp:0.5 },
+        { human: false, name: '绿色', color: '#27ae60', Agg:0.5, Soc:0.5, Cau:0.5, Tech:0.5, Exp:0.5 },
+        { human: false, name: '橙色', color: '#e67e22', Agg:0.5, Soc:0.5, Cau:0.5, Tech:0.5, Exp:0.5 }
+    ];
+
+    G = new Game(8, 8, playersConfig, 0.5);
+
+    for (var y=0; y<G.H; y++)
+        for (var x=0; x<G.W; x++)
+            G.grid[y][x] = { owner: -1, troops: 0, capitalOf: -1 };
+
+    var fixedPositions = [{x:1,y:1},{x:6,y:1},{x:1,y:6},{x:6,y:6}];
+    for (var i=0; i<G.players.length; i++) {
+        var p = G.players[i];
+        var pos = fixedPositions[i];
+        p.capital = {x:pos.x, y:pos.y};
+        p.territories = [{x:pos.x, y:pos.y}];
+        G.grid[pos.y][pos.x].owner = i;
+        G.grid[pos.y][pos.x].troops = 100;
+        G.grid[pos.y][pos.x].capitalOf = i;
+    }
+
+    G.pendingConfirm = false;
+    G.waitingForHuman = true;
+    G.currentActingPlayer = 0;
+    G.simulationMode = false;
+
+    document.getElementById('game').classList.add('active');
+    document.getElementById('setup').style.display = 'none';
+    document.getElementById('pauseBtn').style.display = 'none';
+    document.getElementById('logBox').innerHTML = '【教程】开始';
+
+    renderGame();
+    showTutorialStep();
+
+    if (window._resizeHandler) window.removeEventListener('resize', window._resizeHandler);
+    window._resizeHandler = function() {
+        renderGame();
+        var step = TUTORIAL_STEPS[tutorial.step];
+        if (step && step.highlight) highlightElement(step.highlight);
+    };
+    window.addEventListener('resize', window._resizeHandler);
+}
+
+function showTutorialStep() {
+    var step = TUTORIAL_STEPS[tutorial.step];
+    if (!step) return;
+    var panel = document.getElementById('tutorialPanel');
+    panel.querySelector('.tut-title').textContent = step.title;
+    panel.querySelector('.tut-text').innerHTML = step.text;
+    panel.querySelector('.tut-progress').textContent = '第 ' + (tutorial.step + 1) + ' / ' + TUTORIAL_STEPS.length + ' 步';
+
+    var nextBtn = document.getElementById('tutNextBtn');
+    if (step.next === 'manual') { nextBtn.textContent = '下一步 →'; nextBtn.disabled = false; }
+    else if (step.next === 'finish') { nextBtn.textContent = '✓ 完成教程'; nextBtn.disabled = false; }
+    else if (step.next === 'execute') { nextBtn.textContent = step.action === 'meleeBlue' ? '⚔️ 执行攻击' : '🎯 执行远程攻击'; nextBtn.disabled = false; }
+    else { nextBtn.textContent = '等待操作...'; nextBtn.disabled = true; }
+
+    panel.classList.add('visible');
+    if (step.highlight) setTimeout(function() { highlightElement(step.highlight); }, 50);
+    else highlightElement(null);
+}
+
+function nextTutorialStep() {
+    tutorial.step++;
+    if (tutorial.step >= TUTORIAL_STEPS.length) { exitTutorial(); return; }
+    showTutorialStep();
+    renderGame();
+}
+
+function exitTutorial() {
+    tutorial.active = false;
+    tutorial.step = 0;
+    tutorialForce = { greenAcceptAlliance:false, blueMeleeLose:false, attackResearch5Count:0, orangeRemoteLose:false };
+    document.getElementById('tutorialPanel').classList.remove('visible');
+    highlightElement(null);
+    document.getElementById('logBox').innerHTML = '';
+    G = null;
+    document.getElementById('game').classList.remove('active');
+    document.getElementById('setup').style.display = 'block';
+    document.getElementById('pauseBtn').style.display = 'none';
+    if (window._resizeHandler) window.removeEventListener('resize', window._resizeHandler);
+    updateContinueButton();
+}
+
+function highlightElement(selector) {
+    var hl = document.getElementById('tutorialHighlight');
+    if (!selector) { hl.style.display = 'none'; return; }
+    var el = document.querySelector(selector);
+    if (!el || el.offsetParent === null) { hl.style.display = 'none'; return; }
+    var rect = el.getBoundingClientRect();
+    hl.style.display = 'block';
+    hl.style.left = (rect.left - 4) + 'px';
+    hl.style.top = (rect.top - 4) + 'px';
+    hl.style.width = (rect.width + 8) + 'px';
+    hl.style.height = (rect.height + 8) + 'px';
+}
+
+function checkTutorialConditional() {
+    if (!tutorial.active || tutorial.pendingAdvance) return;
+    var step = TUTORIAL_STEPS[tutorial.step];
+    if (!step || step.next !== 'conditional' || !step.check) return;
+    try {
+        if (step.check()) {
+            tutorial.pendingAdvance = true;
+            setTimeout(function() { tutorial.pendingAdvance = false; nextTutorialStep(); }, 600);
+        }
+    } catch(e) { /* ignore */ }
+}
+
+function afterHumanAction(actionType, extra) {
+    if (!tutorial.active) {
+        G.finishHumanTurnAsync().then(function() { renderGame(); checkHumanEliminated(); });
+        return;
+    }
+    renderGame();
+    var step = TUTORIAL_STEPS[tutorial.step];
+    if (!step) return;
+    if (step.next === 'action') setTimeout(function() { nextTutorialStep(); }, 600);
+    else if (!step.allowed) G.finishHumanTurnAsync().then(function() { renderGame(); checkTutorialConditional(); });
+    else if (step.next === 'conditional') checkTutorialConditional();
+}
+
+function tutorialMeleeBlue() {
+    if (!G) return;
+    var i = 0, j = 1;
+    var border = G.getBorderCells(i, j);
+    var captured = 0;
+    for (var k = 0; k < border.pid2.length; k++) {
+        var pos = border.pid2[k];
+        if (G.grid[pos.y][pos.x].owner === j) {
+            G.grid[pos.y][pos.x].owner = i;
+            G.grid[pos.y][pos.x].troops = 0;
+            G.grid[pos.y][pos.x].capitalOf = -1;
+            var idx = G.players[j].territories.findIndex(function(t) { return t.x===pos.x && t.y===pos.y; });
+            if (idx>=0) G.players[j].territories.splice(idx, 1);
+            G.players[i].territories.push({x:pos.x, y:pos.y});
+            captured++;
+        }
+    }
+    G.addLog('【教程】近战：你击败了蓝色，夺取 ' + captured + ' 格！');
+    showEventPopup('⚔️ 近战获胜，夺取蓝色领土！', 2500);
+    if (G.players[j].territories.length === 0) {
+        G.players[j].alive = false;
+        G.addLog('蓝色 失去全部领土，被淘汰');
+        G.clearEliminatedTerritory(j);
+    }
+    G.ensureCapital(0);
+    renderGame();
+    setTimeout(function() { nextTutorialStep(); }, 900);
+}
+
+function tutorialRemoteOrange() {
+    if (!G) return;
+    var attacker = 0, defender = 3;
+    var D = G.players[attacker].atkRange;
+    var attackCapital = G.players[attacker].capital;
+    var groups = {};
+    for (var k = 0; k < G.players[defender].territories.length; k++) {
+        var t = G.players[defender].territories[k];
+        var d = manhattan(t, attackCapital);
+        if (d <= D) {
+            if (!groups[d]) groups[d] = [];
+            groups[d].push(t);
+        }
+    }
+    var keys = Object.keys(groups).map(Number).sort(function(a,b) { return a-b; });
+    var totalCaptured = 0;
+    for (var ki = 0; ki < keys.length; ki++) {
+        var d = keys[ki];
+        for (var pi = 0; pi < groups[d].length; pi++) {
+            var pos = groups[d][pi];
+            if (G.grid[pos.y][pos.x].owner === defender) {
+                G.grid[pos.y][pos.x].owner = attacker;
+                G.grid[pos.y][pos.x].troops = 0;
+                G.grid[pos.y][pos.x].capitalOf = -1;
+                var idx = G.players[defender].territories.findIndex(function(t) { return t.x===pos.x && t.y===pos.y; });
+                if (idx>=0) G.players[defender].territories.splice(idx, 1);
+                G.players[attacker].territories.push({x:pos.x, y:pos.y});
+                totalCaptured++;
+            }
+        }
+        G.addLog('【教程】远程[距离' + d + ']：你命中橙色的 ' + groups[d].length + ' 格，全部夺取');
+    }
+    showEventPopup('🎯 远程命中，夺取 ' + totalCaptured + ' 格！', 2500);
+    if (G.players[defender].territories.length === 0) {
+        G.players[defender].alive = false;
+        G.addLog('橙色 失去全部领土，被淘汰');
+        G.clearEliminatedTerritory(defender);
+    }
+    G.ensureCapital(0);
+    renderGame();
+    setTimeout(function() { nextTutorialStep(); }, 900);
+}
+
+document.getElementById('tutNextBtn').addEventListener('click', function() {
+    var step = TUTORIAL_STEPS[tutorial.step];
+    if (!step) return;
+    if (step.next === 'manual') nextTutorialStep();
+    else if (step.next === 'execute') {
+        if (step.action === 'meleeBlue') tutorialMeleeBlue();
+        else if (step.action === 'remoteOrange') tutorialRemoteOrange();
+    } else if (step.next === 'finish') exitTutorial();
+});
+document.getElementById('tutSkipBtn').addEventListener('click', exitTutorial);
+
+// =====================================================================
+// 快捷键 F3+M
+// =====================================================================
+var debugKeyActive = false;
+var debugKeyTimer = null;
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'F3') {
+        debugKeyActive = true;
+        if (debugKeyTimer) clearTimeout(debugKeyTimer);
+        debugKeyTimer = setTimeout(function() { debugKeyActive = false; debugKeyTimer = null; }, 1500);
+        e.preventDefault();
+        return;
+    }
+    if ((e.key === 'm' || e.key === 'M') && debugKeyActive) {
+        DEBUG_AI_SCORES = !DEBUG_AI_SCORES;
+        if (G && !G.finished) G.addLog(DEBUG_AI_SCORES ? '[调试] AI评分输出已开启' : '[调试] AI评分输出已关闭');
+        debugKeyActive = false;
+        if (debugKeyTimer) { clearTimeout(debugKeyTimer); debugKeyTimer = null; }
+        e.preventDefault();
+    }
+});
+
+// =====================================================================
+// 游戏核心类
+// =====================================================================
+class Game {
+    constructor(width, height, playersConfig, R) {
+        this.W = width; this.H = height; this.R = R;
+        this.players = [];
+        this.turn = 0;
+        this.finished = false;
+        this.waitingForHuman = false;
+        this.turnOrder = [];
+        this.fixedTurnOrder = [];
+        this.humanOrderIdx = -1;
+        this.currentActingPlayer = -1;
+        this.pendingConfirm = false;
+        this.simulationMode = false;
+        this.grid = [];
+        for (var y=0; y<this.H; y++) {
+            this.grid[y] = [];
+            for (var x=0; x<this.W; x++) this.grid[y][x] = { owner: -1, troops: 0, capitalOf: -1 };
+        }
+        for (var i=0; i<playersConfig.length; i++) {
+            var cfg = playersConfig[i];
+            this.players.push({
+                id: i, human: cfg.human || false, name: cfg.name || ('AI-' + i),
+                color: cfg.color || '#888', troops: 100, atkRange: 0, defRange: 0,
+                capital: null, territories: [],
+                relations: Array(playersConfig.length).fill(0),
+                cooldown: Array(playersConfig.length).fill(0),
+                Agg: cfg.Agg || 0.5, Exp: cfg.Exp || 0.5, Tech: cfg.Tech || 0.5,
+                Soc: cfg.Soc || 0.5, Cau: cfg.Cau || 0.5,
+                alive: true, capitalCooldown: 0
+            });
+        }
+        var positions = [];
+        for (var y=0; y<this.H; y++) for (var x=0; x<this.W; x++) positions.push({x:x,y:y});
+        for (var i=positions.length-1; i>0; i--) {
+            var j = rand(0,i);
+            var t = positions[i]; positions[i] = positions[j]; positions[j] = t;
+        }
+        for (var i=0; i<this.players.length; i++) {
+            var pos = positions[i];
+            this.players[i].capital = {x:pos.x, y:pos.y};
+            this.grid[pos.y][pos.x].owner = i;
+            this.grid[pos.y][pos.x].troops = 100;
+            this.grid[pos.y][pos.x].capitalOf = i;
+            this.players[i].territories.push({x:pos.x, y:pos.y});
+        }
+        this.fixedTurnOrder = this.players.map(function(p) { return p.id; });
+        for (var i = this.fixedTurnOrder.length - 1; i > 0; i--) {
+            var j = rand(0, i);
+            var t = this.fixedTurnOrder[i]; this.fixedTurnOrder[i] = this.fixedTurnOrder[j]; this.fixedTurnOrder[j] = t;
+        }
+        this.addLog('游戏开始，' + playersConfig.length + '位玩家。');
+        this.updateStatusBar();
+    }
+
+    serialize() {
+        return {
+            W: this.W, H: this.H, R: this.R,
+            turn: this.turn, finished: this.finished,
+            waitingForHuman: this.waitingForHuman, pendingConfirm: this.pendingConfirm,
+            simulationMode: this.simulationMode,
+            currentActingPlayer: this.currentActingPlayer, humanOrderIdx: this.humanOrderIdx,
+            fixedTurnOrder: this.fixedTurnOrder.slice(), turnOrder: this.turnOrder.slice(),
+            grid: this.grid.map(function(row) { return row.map(function(c) { return { owner: c.owner, troops: c.troops, capitalOf: c.capitalOf }; }); }),
+            players: this.players.map(function(p) {
+                return {
+                    id: p.id, human: p.human, name: p.name, color: p.color,
+                    troops: p.troops, atkRange: p.atkRange, defRange: p.defRange,
+                    capital: p.capital ? { x: p.capital.x, y: p.capital.y } : null,
+                    territories: p.territories.map(function(t) { return { x: t.x, y: t.y }; }),
+                    relations: p.relations.slice(), cooldown: p.cooldown.slice(),
+                    Agg: p.Agg, Exp: p.Exp, Tech: p.Tech, Soc: p.Soc, Cau: p.Cau,
+                    alive: p.alive, capitalCooldown: p.capitalCooldown
+                };
+            })
+        };
+    }
+
+    static deserialize(data) {
+        var g = Object.create(Game.prototype);
+        g.W = data.W; g.H = data.H; g.R = data.R;
+        g.turn = data.turn || 0;
+        g.finished = !!data.finished;
+        g.waitingForHuman = !!data.waitingForHuman;
+        g.pendingConfirm = !!data.pendingConfirm;
+        g.simulationMode = !!data.simulationMode;
+        g.currentActingPlayer = (typeof data.currentActingPlayer === 'number') ? data.currentActingPlayer : -1;
+        g.humanOrderIdx = (typeof data.humanOrderIdx === 'number') ? data.humanOrderIdx : -1;
+        g.fixedTurnOrder = (data.fixedTurnOrder || []).slice();
+        g.turnOrder = (data.turnOrder || []).slice();
+        g.grid = data.grid.map(function(row) { return row.map(function(c) { return { owner: c.owner, troops: c.troops, capitalOf: c.capitalOf }; }); });
+        g.players = data.players.map(function(p) {
+            return {
+                id: p.id, human: !!p.human, name: p.name, color: p.color,
+                troops: p.troops, atkRange: p.atkRange, defRange: p.defRange,
+                capital: p.capital ? { x: p.capital.x, y: p.capital.y } : null,
+                territories: (p.territories || []).map(function(t) { return { x: t.x, y: t.y }; }),
+                relations: (p.relations || []).slice(),
+                cooldown: (p.cooldown || []).slice(),
+                Agg: p.Agg, Exp: p.Exp, Tech: p.Tech, Soc: p.Soc, Cau: p.Cau,
+                alive: !!p.alive, capitalCooldown: p.capitalCooldown || 0
+            };
+        });
+        return g;
+    }
+
+    ensureCapital(pid) {
+        var p = this.players[pid];
+        if (!p || !p.alive) return;
+        if (p.territories.length === 0) return;
+        var capValid = p.capital && p.territories.some(function(t) { return t.x === p.capital.x && t.y === p.capital.y; });
+        if (capValid) return;
+        var best = null, bestSum = Infinity;
+        for (var i = 0; i < p.territories.length; i++) {
+            var t = p.territories[i];
+            var sum = 0;
+            for (var j = 0; j < p.territories.length; j++) sum += manhattan(t, p.territories[j]);
+            if (sum < bestSum) { bestSum = sum; best = t; }
+        }
+        if (!best) return;
+        for (var y=0; y<this.H; y++)
+            for (var x=0; x<this.W; x++)
+                if (this.grid[y][x].capitalOf === pid) this.grid[y][x].capitalOf = -1;
+        p.capital = { x: best.x, y: best.y };
+        this.grid[best.y][best.x].capitalOf = pid;
+        this.addLog(cname(p) + ' 首都迁移至 (' + best.x + ',' + best.y + ')');
+    }
+
+    clearEliminatedTerritory(pid) {
+        var p = this.players[pid];
+        if (!p) return;
+        p.territories = [];
+        p.capital = null;
+    }
+
+    addLog(msg) {
+        var box = document.getElementById('logBox');
+        if (box) {
+            box.insertAdjacentHTML('afterbegin', msg + '\n');
+            box.scrollTop = 0;
+        }
+    }
+
+    updateStatusBar() {
+        var bar = document.getElementById('statusBar');
+        if (!bar) return;
+        var html = '';
+        var effectiveSelected = (selectedInfoPlayer === -1) ? 0 : selectedInfoPlayer;
+        for (var fi = 0; fi < this.fixedTurnOrder.length; fi++) {
+            var pid = this.fixedTurnOrder[fi];
+            var p = this.players[pid];
+            if (!p || !p.alive) continue;
+            var isYou = p.human ? ' <span class="you-tag">你</span>' : '';
+            var cd = (p.id === 0 && p.capitalCooldown > 0) ? ' 迁都CD:' + p.capitalCooldown : '';
+            var isActing = (this.currentActingPlayer !== -1) && (p.id === this.currentActingPlayer);
+            var isSelected = (p.id === effectiveSelected);
+            var borderStyle = isSelected
+                ? 'border:2px solid #ffffff; box-shadow:0 0 10px rgba(255,255,255,0.6);'
+                : 'border:2px solid transparent;';
+            var nameStyle = isActing ? 'color:#ffdd4a; text-shadow:0 0 6px rgba(255,221,74,0.9);' : '';
+            html += '<div class="status-item" style="' + borderStyle + '">' +
+                '<span class="status-color" style="background:' + p.color + '"></span>' +
+                '<span class="status-name" style="' + nameStyle + '">' + p.name + '</span>' + isYou +
+                '<span class="status-detail">兵力:' + p.troops + ' 领土:' + p.territories.length + ' 远程攻击:' + p.atkRange + ' 远程防御:' + p.defRange + cd + '</span>' +
+                '</div>';
+        }
+        if (tutorial.active) {
+            var total = TUTORIAL_STEPS.length;
+            var cur = tutorial.step + 1;
+            html += '<div class="status-item tut-progress-tag">' +
+                '<span class="tut-tag-title">📖 教程</span>' +
+                '<span class="status-detail">第 ' + cur + ' / ' + total + ' 步</span>' +
+                '</div>';
+        }
+        if (this.simulationMode) {
+            var pauseTag = simulationPaused ? '（已暂停）' : '';
+            html += '<div class="status-item" style="border:2px solid #5a4a8a; background:#2a1e3e;">' +
+                '<span style="color:#a890ff; font-weight:bold;">🤖 AI 模拟' + pauseTag + '</span>' +
+                '</div>';
+        }
+        bar.innerHTML = html;
+        document.getElementById('turnDisplay').textContent = this.turn;
+    }
+
+    getCell(x,y) { if (x<0||x>=this.W||y<0||y>=this.H) return null; return this.grid[y][x]; }
+    isEmpty(x,y) { var c = this.getCell(x,y); return c && c.owner === -1; }
+
+    expand(pid, dir) {
+        var p = this.players[pid];
+        if (!p.alive) return false;
+        var dx=0, dy=0;
+        if (dir==='up') dy=-1; else if (dir==='down') dy=1; else if (dir==='left') dx=-1; else if (dir==='right') dx=1;
+        else return false;
+        var toAdd = [];
+        for (var i = 0; i < p.territories.length; i++) {
+            var t = p.territories[i];
+            var nx = t.x + dx, ny = t.y + dy;
+            if (nx>=0 && nx<this.W && ny>=0 && ny<this.H && this.isEmpty(nx,ny)) toAdd.push({x:nx, y:ny});
+        }
+        if (toAdd.length === 0) return false;
+        for (var k = 0; k < toAdd.length; k++) {
+            var pos = toAdd[k];
+            this.grid[pos.y][pos.x].owner = pid;
+            this.grid[pos.y][pos.x].troops = 0;
+            this.grid[pos.y][pos.x].capitalOf = -1;
+            p.territories.push({x:pos.x, y:pos.y});
+        }
+        this.addLog(cname(p) + ' 向' + dir + '扩张，获得 ' + toAdd.length + ' 格。');
+        this.updateStatusBar();
+        return true;
+    }
+
+    recruit(pid) {
+        var p = this.players[pid];
+        if (!p.alive) return false;
+        var r = Math.random();
+        var gain = 50;
+        if (r < 0.4) gain = 50;
+        else if (r < 0.7) gain = 100;
+        else if (r < 0.9) gain = 200;
+        else gain = 400;
+        p.troops += gain;
+        this.addLog(cname(p) + ' 征兵，获得 ' + gain + ' 兵力。');
+        this.updateStatusBar();
+        return gain;
+    }
+
+    research(pid, type) {
+        var p = this.players[pid];
+        if (!p.alive) return false;
+        var inc = rand(1,5);
+        if (tutorial.active && pid === 0 && type === 'attack' && tutorialForce.attackResearch5Count > 0) {
+            inc = 5;
+            tutorialForce.attackResearch5Count--;
+        }
+        if (type === 'attack') { p.atkRange += inc; this.addLog(cname(p) + ' 研发远程攻击，射程 +' + inc); }
+        else if (type === 'defense') { p.defRange += inc; this.addLog(cname(p) + ' 研发远程防御，射程 +' + inc); }
+        else return false;
+        this.updateStatusBar();
+        return inc;
+    }
+
+    relocateCapital(pid) {
+        var p = this.players[pid];
+        if (!p.alive || p.territories.length === 0) return false;
+        if (p.capitalCooldown > 0) return false;
+        var best = null, bestSum = Infinity;
+        for (var i = 0; i < p.territories.length; i++) {
+            var t = p.territories[i];
+            var sum = 0;
+            for (var j = 0; j < p.territories.length; j++) sum += manhattan(t, p.territories[j]);
+            if (sum < bestSum) { bestSum = sum; best = t; }
+        }
+        if (!best) return false;
+        if (p.capital && p.capital.x === best.x && p.capital.y === best.y) return false;
+        for (var y=0; y<this.H; y++)
+            for (var x=0; x<this.W; x++)
+                if (this.grid[y][x].capitalOf === pid) this.grid[y][x].capitalOf = -1;
+        p.capital = { x: best.x, y: best.y };
+        this.grid[best.y][best.x].capitalOf = pid;
+        p.capitalCooldown = 5;
+        this.addLog(cname(p) + ' 迁都至 (' + best.x + ',' + best.y + ')');
+        this.updateStatusBar();
+        return true;
+    }
+
+    shouldRelocateCapital(pid) {
+        var p = this.players[pid];
+        if (!p.alive || p.capitalCooldown > 0) return false;
+        if (p.territories.length <= 1) return false;
+        var newCap = null, bestSum = Infinity;
+        for (var i = 0; i < p.territories.length; i++) {
+            var t = p.territories[i];
+            var sum = 0;
+            for (var j = 0; j < p.territories.length; j++) sum += manhattan(t, p.territories[j]);
+            if (sum < bestSum) { bestSum = sum; newCap = t; }
+        }
+        if (!newCap) return false;
+        var oldCap = p.capital;
+        if (!oldCap) return true;
+        if (oldCap.x === newCap.x && oldCap.y === newCap.y) return false;
+
+        var self = this;
+        var coverEnemies = function(cap) {
+            var cnt = 0;
+            for (var qi = 0; qi < self.players.length; qi++) {
+                var q = self.players[qi];
+                if (q.id === pid || !q.alive || p.relations[q.id] !== -1) continue;
+                for (var ti = 0; ti < q.territories.length; ti++) {
+                    if (manhattan(q.territories[ti], cap) <= p.atkRange) cnt++;
+                }
+            }
+            return cnt;
+        };
+        var nearestEnemyDist = function(cap) {
+            var minD = Infinity;
+            for (var qi = 0; qi < self.players.length; qi++) {
+                var q = self.players[qi];
+                if (q.id === pid || !q.alive || p.relations[q.id] !== -1) continue;
+                for (var ti = 0; ti < q.territories.length; ti++) {
+                    var d = manhattan(q.territories[ti], cap);
+                    if (d < minD) minD = d;
+                }
+            }
+            return minD === Infinity ? 999 : minD;
+        };
+        var centrality = function(cap) {
+            var sum = 0;
+            for (var ti = 0; ti < p.territories.length; ti++) sum += manhattan(p.territories[ti], cap);
+            return sum / p.territories.length;
+        };
+
+        var oldCover = coverEnemies(oldCap), newCover = coverEnemies(newCap);
+        var oldSafety = nearestEnemyDist(oldCap), newSafety = nearestEnemyDist(newCap);
+        var oldCentrality = centrality(oldCap), newCentrality = centrality(newCap);
+        var score = (newCover - oldCover) * 10 + (newSafety - oldSafety) * 2 + (oldCentrality - newCentrality) * 1;
+        return score > 15;
+    }
+
+    getAcceptProb(pid, target, type) {
+        if (tutorial.active && tutorialForce.greenAcceptAlliance && pid === 0 && target === 2 && type === 'alliance') return 1;
+        var p = this.players[pid], t = this.players[target];
+        if (!t.alive) return 0;
+        var tAgg = t.Agg, tSoc = t.Soc, tCau = t.Cau;
+        if (target === 0) {
+            var est = this.estimatePlayerStats();
+            tAgg = est.Agg; tSoc = est.Soc; tCau = est.Cau;
+        }
+        var pStr = p.troops + p.atkRange * 5 + p.defRange * 3;
+        var tStr = t.troops + t.atkRange * 5 + t.defRange * 3;
+        var ratio = pStr / (pStr + tStr + 1);
+        if (type === 'alliance') {
+            var prob = 0.4 + (ratio - 0.5) * 0.8;
+            if (!this.hasBorder(pid, target)) prob += 0.1;
+            prob -= tAgg * 0.3; prob += tSoc * 0.3;
+            return clamp(prob, 0, 1);
+        } else if (type === 'peace') {
+            var prob = 0.3 + (ratio - 0.5) * 0.8 + tCau * 0.2 - tAgg * 0.3;
+            return clamp(prob, 0, 1);
+        }
+        return 0;
+    }
+
+    estimatePlayerStats() {
+        var human = this.players[0];
+        var allyCount = 0, hostileCount = 0;
+        for (var j = 1; j < this.players.length; j++) {
+            if (!this.players[j].alive) continue;
+            if (human.relations[j] === 1) allyCount++;
+            else if (human.relations[j] === -1) hostileCount++;
+        }
+        var total = Math.max(1, allyCount + hostileCount);
+        return {
+            Agg: clamp(0.2 + (hostileCount / total) * 0.8, 0, 1),
+            Soc: clamp(0.2 + (allyCount / total) * 0.8, 0, 1),
+            Cau: 0.5
+        };
+    }
+
+    changeRelation(pid, target, newRel) {
+        if (tutorial.active && pid !== 0 && target === 0) return false;
+        var p = this.players[pid];
+        var t = this.players[target];
+        if (!p.alive || !t.alive) return false;
+        if (p.cooldown[target] > 0) return false;
+        if (newRel < -1 || newRel > 1) return false;
+        if (p.relations[target] === newRel) return false;
+
+        if (pid !== 0 && target === 0) {
+            var self = this;
+            if (newRel === 1) {
+                diploPaused = true;
+                showDiploRequest(p.name + ' 向你申请结盟，是否同意？', function() {
+                    p.relations[target] = 1; t.relations[pid] = 1;
+                    p.cooldown[target] = 1; t.cooldown[pid] = 1;
+                    t.Soc = clamp(t.Soc + 0.1, 0, 1);
+                    self.addLog('你 接受了 ' + cname(p) + ' 的结盟申请');
+                    showEventPopup('🤝 你接受了 ' + p.name + ' 的结盟');
+                    self.updateStatusBar(); renderGame(); diploPaused = false;
+                }, function() {
+                    t.Soc = clamp(t.Soc - 0.05, 0, 1);
+                    self.addLog(cname(p) + ' 向你申请结盟被拒');
+                    showEventPopup('❌ 你拒绝了 ' + p.name + ' 的结盟');
+                    diploPaused = false;
+                });
+                return false;
+            } else if (p.relations[target] === -1 && newRel === 0) {
+                diploPaused = true;
+                showDiploRequest(p.name + ' 向你请求求和，是否同意？', function() {
+                    p.relations[target] = 0; t.relations[pid] = 0;
+                    p.cooldown[target] = 1; t.cooldown[pid] = 1;
+                    t.Agg = clamp(t.Agg - 0.1, 0, 1);
+                    self.addLog('你 接受了 ' + cname(p) + ' 的求和请求');
+                    showEventPopup('🕊️ 你接受了 ' + p.name + ' 的求和');
+                    self.updateStatusBar(); renderGame(); diploPaused = false;
+                }, function() {
+                    t.Agg = clamp(t.Agg + 0.05, 0, 1);
+                    self.addLog(cname(p) + ' 向你求和被拒');
+                    showEventPopup('❌ 你拒绝了 ' + p.name + ' 的求和');
+                    diploPaused = false;
+                });
+                return false;
+            }
+        } else {
+            if (newRel === 1) {
+                var prob = this.getAcceptProb(pid, target, 'alliance');
+                if (Math.random() > prob) { this.addLog(cname(p) + ' 向 ' + cname(t) + ' 申请结盟被拒'); return false; }
+            }
+            if (p.relations[target] === -1 && newRel === 0) {
+                var prob = this.getAcceptProb(pid, target, 'peace');
+                if (Math.random() > prob) { this.addLog(cname(p) + ' 向 ' + cname(t) + ' 求和被拒'); return false; }
+            }
+        }
+
+        p.relations[target] = newRel;
+        t.relations[pid] = newRel;
+        p.cooldown[target] = 1;
+        t.cooldown[pid] = 1;
+        var relName = {1:'同盟',0:'中立','-1':'敌对'}[newRel];
+        this.addLog(cname(p) + ' 与 ' + cname(t) + ' 关系变为 ' + relName);
+        this.updateStatusBar();
+        return true;
+    }
+
+    hasBorder(pid1, pid2) {
+        if (!this.players[pid1] || !this.players[pid2]) return false;
+        var t1 = this.players[pid1].territories;
+        for (var i = 0; i < t1.length; i++) {
+            var a = t1[i];
+            for (var d = 0; d < 4; d++) {
+                var dd = [[0,1],[0,-1],[1,0],[-1,0]][d];
+                var nx = a.x + dd[0], ny = a.y + dd[1];
+                if (nx>=0 && nx<this.W && ny>=0 && ny<this.H && this.grid[ny][nx].owner === pid2) return true;
+            }
+        }
+        return false;
+    }
+
+    getBorderCells(pid1, pid2) {
+        var result = { pid1: [], pid2: [] };
+        var t1 = this.players[pid1].territories;
+        for (var i = 0; i < t1.length; i++) {
+            var a = t1[i];
+            for (var d = 0; d < 4; d++) {
+                var dd = [[0,1],[0,-1],[1,0],[-1,0]][d];
+                var nx = a.x + dd[0], ny = a.y + dd[1];
+                if (nx>=0 && nx<this.W && ny>=0 && ny<this.H && this.grid[ny][nx].owner === pid2) {
+                    result.pid1.push(a);
+                    result.pid2.push({x:nx, y:ny});
+                }
+            }
+        }
+        return result;
+    }
+
+    getWarTotal(pid) {
+        var sum = this.players[pid].troops;
+        for (var k = 0; k < this.players.length; k++) {
+            if (k !== pid && this.players[pid].relations[k] === 1 && this.players[k].alive) sum += this.players[k].troops * 0.5;
+        }
+        return sum;
+    }
+
+    prepareWarState(i, j) {
+        var p1 = this.players[i], p2 = this.players[j];
+        if (!p1.alive || !p2.alive) return null;
+        var state = { i: i, j: j, meleeWinner: null, firstAttacker: null, secondAttacker: null };
+        if (this.hasBorder(i, j)) {
+            var total1 = this.getWarTotal(i), total2 = this.getWarTotal(j);
+            var meleeWinner;
+            if (tutorial.active && tutorialForce.blueMeleeLose && ((i === 0 && j === 1) || (i === 1 && j === 0))) {
+                meleeWinner = 0;
+            } else {
+                meleeWinner = (Math.random() < total1 / (total1 + total2)) ? i : j;
+            }
+            state.meleeWinner = meleeWinner;
+            state.firstAttacker = meleeWinner;
+            state.secondAttacker = (meleeWinner === i) ? j : i;
+        } else {
+            state.firstAttacker = Math.random() < 0.5 ? i : j;
+            state.secondAttacker = (state.firstAttacker === i) ? j : i;
+        }
+        return state;
+    }
+
+    resolveMeleePhase(state) {
+        var i = state.i, j = state.j, meleeWinner = state.meleeWinner;
+        if (meleeWinner === null || meleeWinner === undefined) return;
+        var p1 = this.players[i], p2 = this.players[j];
+        var border = this.getBorderCells(i, j);
+        var loserIdx = (meleeWinner === i) ? j : i;
+        var winnerP = this.players[meleeWinner];
+        var loserP = this.players[loserIdx];
+        var targetPositions = (meleeWinner === i) ? border.pid2 : border.pid1;
+        var capturedSet = new Set();
+        for (var k = 0; k < targetPositions.length; k++) {
+            var pos = targetPositions[k];
+            var key = pos.x + ',' + pos.y;
+            if (capturedSet.has(key)) continue;
+            if (this.grid[pos.y][pos.x].owner !== loserIdx) continue;
+            this.grid[pos.y][pos.x].owner = meleeWinner;
+            this.grid[pos.y][pos.x].troops = 0;
+            this.grid[pos.y][pos.x].capitalOf = -1;
+            winnerP.territories.push({ x: pos.x, y: pos.y });
+            capturedSet.add(key);
+        }
+        if (capturedSet.size > 0) {
+            loserP.territories = loserP.territories.filter(function(t) {
+                return !capturedSet.has(t.x + ',' + t.y);
+            });
+        }
+        if (meleeWinner === i) {
+            this.addLog('⚔️ 近战：' + cname(p1) + ' 击败 ' + cname(p2));
+        } else {
+            this.addLog('⚔️ 近战：' + cname(p2) + ' 击败 ' + cname(p1));
+        }
+    }
+
+    async resolveWarsAsync() {
+        var n = this.players.length;
+        var allPairs = [];
+        for (var i = 0; i < n; i++) for (var j = i + 1; j < n; j++) {
+            if (this.players[i].relations[j] === -1 && this.players[i].alive && this.players[j].alive) {
+                allPairs.push([i, j]);
+            }
+        }
+        if (allPairs.length > 0) {
+            var combatDelay = parseFloat(document.getElementById('combatDelaySlider').value) * 1000;
+            var humanPairs = allPairs.filter(function(pair) { return pair[0] === 0 || pair[1] === 0; });
+            var aiPairs = allPairs.filter(function(pair) { return pair[0] !== 0 && pair[1] !== 0; });
+            var mergeOwn = document.getElementById('mergeOwnWarsCheckbox')?.checked || false;
+            if (this.simulationMode) {
+                aiPairs = allPairs;
+                humanPairs = [];
+            }
+            if (aiPairs.length > 0) await this.resolveMergedWars(aiPairs, false);
+            if (humanPairs.length > 0) {
+                if (mergeOwn) {
+                    await this.resolveMergedWars(humanPairs, true);
+                } else {
+                    for (var idx = 0; idx < humanPairs.length; idx++) {
+                        await waitForDiplo();
+                        await this.resolveWarAsync(humanPairs[idx][0], humanPairs[idx][1]);
+                        if (idx < humanPairs.length - 1 && !this.finished) {
+                            await new Promise(function(resolve) { setTimeout(resolve, combatDelay); });
+                        }
+                    }
+                }
+            }
+        }
+        for (var pi = 0; pi < this.players.length; pi++) if (this.players[pi].alive) this.ensureCapital(this.players[pi].id);
+        for (var pi = 0; pi < this.players.length; pi++) {
+            var p = this.players[pi];
+            if (p.alive && p.territories.length === 0) {
+                p.alive = false;
+                this.addLog(cname(p) + ' 失去全部领土，被淘汰');
+                this.clearEliminatedTerritory(p.id);
+                if (p.id === 0 && !this.simulationMode) showEventPopup('💀 你失去了全部领土，被淘汰！', 5000);
+            }
+        }
+        var alive = this.players.filter(function(p) { return p.alive; });
+        if (alive.length === 1) {
+            this.finished = true;
+            this.addLog('🏆 ' + cname(alive[0]) + ' 获胜！');
+            if (this.simulationMode) showEventPopup('🏆 ' + alive[0].name + ' 获胜！', 5000);
+            else if (alive[0].id === 0) showEventPopup('🏆 你赢得了胜利！', 5000);
+            else showEventPopup('🏆 ' + alive[0].name + ' 获胜！', 5000);
+        }
+        this.updateStatusBar();
+        renderGame();
+    }
+
+    async resolveWarAsync(i, j) {
+        var state = this.prepareWarState(i, j);
+        if (!state) return;
+        if (!tutorial.active && !this.simulationMode && (i === 0 || j === 0)) {
+            showEventPopup('⚔️ 你与 ' + (i === 0 ? this.players[j].name : this.players[i].name) + ' 发生战争！', 3000);
+        }
+        var combatDelay = parseFloat(document.getElementById('combatDelaySlider').value) * 1000;
+        this.resolveMeleePhase(state);
+        renderGame();
+        await new Promise(function(r) { setTimeout(r, combatDelay); });
+        await waitForSimulationResume();
+        if (this.players[state.firstAttacker].alive && this.players[state.secondAttacker].alive) {
+            this.ensureCapital(state.firstAttacker);
+            this.ensureCapital(state.secondAttacker);
+            await this.remoteAttackAsync(state.firstAttacker, state.secondAttacker, false);
+        }
+        if (this.players[state.firstAttacker].alive && this.players[state.secondAttacker].alive) {
+            this.ensureCapital(state.firstAttacker);
+            this.ensureCapital(state.secondAttacker);
+            await this.remoteAttackAsync(state.secondAttacker, state.firstAttacker, false);
+        }
+        this.updateStatusBar();
+    }
+
+    async resolveMergedWars(pairs, skipDelay) {
+        if (skipDelay === undefined) skipDelay = false;
+        var combatDelay = parseFloat(document.getElementById('combatDelaySlider').value) * 1000;
+        for (var k = 0; k < pairs.length; k++) {
+            if (this.finished) return;
+            if (!skipDelay && k > 0) {
+                await new Promise(function(r) { setTimeout(r, combatDelay); });
+            }
+            await waitForSimulationResume();
+            var state = this.prepareWarState(pairs[k][0], pairs[k][1]);
+            if (!state) continue;
+            this.resolveMeleePhase(state);
+            if (this.players[state.firstAttacker].alive && this.players[state.secondAttacker].alive) {
+                this.ensureCapital(state.firstAttacker);
+                this.ensureCapital(state.secondAttacker);
+                await this.remoteAttackAsync(state.firstAttacker, state.secondAttacker, true);
+            }
+            if (this.players[state.firstAttacker].alive && this.players[state.secondAttacker].alive) {
+                this.ensureCapital(state.firstAttacker);
+                this.ensureCapital(state.secondAttacker);
+                await this.remoteAttackAsync(state.secondAttacker, state.firstAttacker, true);
+            }
+            renderGame();
+        }
+    }
+
+    async remoteAttackAsync(attacker, defender, merged) {
+        if (merged === undefined) merged = false;
+        var pAtt = this.players[attacker], pDef = this.players[defender];
+        if (!pAtt.alive || !pDef.alive) return null;
+        var D = pAtt.atkRange;
+        if (D === 0) return null;
+        var attackCapital = pAtt.capital;
+        if (!attackCapital) return null;
+        var groups = {};
+        for (var ti = 0; ti < pDef.territories.length; ti++) {
+            var t = pDef.territories[ti];
+            var d = manhattan(t, attackCapital);
+            if (d <= D) { if (!groups[d]) groups[d] = []; groups[d].push(t); }
+        }
+        var alliesAttack = [];
+        for (var k = 0; k < this.players.length; k++) {
+            if (k !== attacker && this.players[attacker].relations[k] === 1 && this.players[k].alive) {
+                if (Math.random() < 0.5) alliesAttack.push(k);
+            }
+        }
+        var combatDelay = parseFloat(document.getElementById('combatDelaySlider').value) * 1000;
+        var keys = Object.keys(groups).map(Number).sort(function(a, b) { return a - b; });
+        var totalCaptured = 0, totalBlocked = 0, totalMissed = 0;
+        var isHumanWar = !tutorial.active && !this.simulationMode && (attacker === 0 || defender === 0);
+
+        for (var idx = 0; idx < keys.length; idx++) {
+            var d = keys[idx];
+            var count = groups[d].length;
+            var atkSuccess, defSuccess;
+            if (tutorial.active && tutorialForce.orangeRemoteLose && attacker === 0 && defender === 3) {
+                atkSuccess = true; defSuccess = false;
+            } else {
+                atkSuccess = Math.random() < remoteHitProb(d, D);
+                if (!atkSuccess) for (var ai = 0; ai < alliesAttack.length; ai++) if (Math.random() < 0.5) { atkSuccess = true; break; }
+                if (atkSuccess) {
+                    defSuccess = Math.random() < remoteHitProb(d, pDef.defRange);
+                    if (!defSuccess) {
+                        for (var k = 0; k < this.players.length; k++) {
+                            if (k !== defender && this.players[defender].relations[k] === 1 && this.players[k].alive) {
+                                if (Math.random() < 0.5) { defSuccess = true; break; }
+                            }
+                        }
+                    }
+                }
+            }
+            if (atkSuccess && !defSuccess) {
+                var capturedSet = new Set();
+                for (var pi = 0; pi < groups[d].length; pi++) {
+                    var pos = groups[d][pi];
+                    if (this.grid[pos.y][pos.x].owner === defender) {
+                        this.grid[pos.y][pos.x].owner = attacker;
+                        this.grid[pos.y][pos.x].troops = 0;
+                        this.grid[pos.y][pos.x].capitalOf = -1;
+                        pAtt.territories.push({ x: pos.x, y: pos.y });
+                        capturedSet.add(pos.x + ',' + pos.y);
+                    }
+                }
+                if (capturedSet.size > 0) {
+                    pDef.territories = pDef.territories.filter(function(t) {
+                        return !capturedSet.has(t.x + ',' + t.y);
+                    });
+                }
+                totalCaptured += count;
+                if (!merged) {
+                    this.addLog('🎯 远程[距离' + d + ']：' + cname(pAtt) + ' 命中 ' + cname(pDef) + ' 的 ' + count + ' 格，全部夺取');
+                    if (isHumanWar) showEventPopup('🎯 [距离' + d + '] ' + pAtt.name + ' 远程命中，夺取 ' + count + ' 格！', 2500);
+                }
+                this.ensureCapital(defender);
+                this.ensureCapital(attacker);
+            } else if (atkSuccess) {
+                totalBlocked += count;
+                if (!merged) {
+                    this.addLog('🛡️ 远程[距离' + d + ']：' + cname(pAtt) + ' 命中，但被 ' + cname(pDef) + ' 防御挡住');
+                    if (isHumanWar) showEventPopup('🛡️ [距离' + d + '] ' + pDef.name + ' 挡住了远程攻击', 2200);
+                }
+            } else {
+                totalMissed += count;
+                if (!merged) {
+                    this.addLog('💨 远程[距离' + d + ']：' + cname(pAtt) + ' 未命中 ' + cname(pDef) + ' 的 ' + count + ' 格');
+                    if (isHumanWar) showEventPopup('💨 [距离' + d + '] ' + pAtt.name + ' 远程攻击未命中', 2000);
+                }
+            }
+            if (!merged) renderGame();
+            if (!merged && idx < keys.length - 1) {
+                await new Promise(function(r) { setTimeout(r, combatDelay); });
+            }
+        }
+
+        if (merged) {
+            var parts = [];
+            if (totalCaptured > 0) parts.push('夺取 ' + totalCaptured + ' 格');
+            if (totalBlocked > 0) parts.push('被挡 ' + totalBlocked + ' 格');
+            if (totalMissed > 0) parts.push('未命中 ' + totalMissed + ' 格');
+            var summary;
+            if (totalCaptured > 0 && totalBlocked === 0 && totalMissed === 0) {
+                summary = '🎯 远程：' + cname(pAtt) + ' 夺取 ' + cname(pDef) + ' 的 ' + totalCaptured + ' 格';
+            } else if (totalCaptured > 0) {
+                summary = '🎯 远程：' + cname(pAtt) + ' 对 ' + cname(pDef) + '：' + parts.join('，');
+            } else {
+                summary = '💨 远程：' + cname(pAtt) + ' 对 ' + cname(pDef) + ' 未能夺取领土（' + parts.join('，') + '）';
+            }
+            this.addLog(summary);
+            if (isHumanWar && totalCaptured > 0) showEventPopup('🎯 ' + pAtt.name + ' 远程夺取 ' + pDef.name + ' 的 ' + totalCaptured + ' 格！', 2200);
+            renderGame();
+        }
+
+        if (totalCaptured > 0) return cname(pAtt) + ' 远程夺取 ' + totalCaptured + ' 格';
+        return null;
+    }
+
+    updateCooldowns() {
+        for (var pi = 0; pi < this.players.length; pi++) {
+            var p = this.players[pi];
+            for (var i=0; i<p.cooldown.length; i++) if (p.cooldown[i] > 0) p.cooldown[i]--;
+            if (p.capitalCooldown > 0) p.capitalCooldown--;
+        }
+    }
+
+    getValidActions(pid) {
+        var p = this.players[pid];
+        if (!p.alive || this.finished) return [];
+        var actions = [];
+        var dirs = ['up','down','left','right'];
+        for (var di = 0; di < dirs.length; di++) {
+            var d = dirs[di];
+            var dx=0, dy=0;
+            if (d==='up') dy=-1; else if (d==='down') dy=1; else if (d==='left') dx=-1; else dx=1;
+            var possible = false;
+            for (var ti = 0; ti < p.territories.length; ti++) {
+                var t = p.territories[ti];
+                var nx=t.x+dx, ny=t.y+dy;
+                if (nx>=0 && nx<this.W && ny>=0 && ny<this.H && this.isEmpty(nx,ny)) { possible=true; break; }
+            }
+            if (possible) actions.push({type:'expand', dir:d, label:'扩张-' + d});
+        }
+        actions.push({type:'recruit', label:'征兵'});
+        actions.push({type:'research_attack', label:'科研-攻击'});
+        actions.push({type:'research_defense', label:'科研-防御'});
+        for (var j=0; j<this.players.length; j++) {
+            if (j===pid || !this.players[j].alive) continue;
+            var rel = p.relations[j];
+            if (p.cooldown[j] > 0) continue;
+            if (rel === 0) {
+                actions.push({type:'ally', target:j, label:'结盟-' + this.players[j].name});
+                actions.push({type:'war', target:j, label:'宣战-' + this.players[j].name});
+            } else if (rel === 1) {
+                actions.push({type:'unally', target:j, label:'解盟-' + this.players[j].name});
+            } else if (rel === -1) {
+                actions.push({type:'peace', target:j, label:'求和-' + this.players[j].name});
+            }
+        }
+        return actions;
+    }
+
+    performAction(pid, action, extra) {
+        var p = this.players[pid];
+        if (!p.alive || this.finished) return false;
+        var success = false, result = null;
+        switch (action.type) {
+            case 'expand': success = this.expand(pid, action.dir); break;
+            case 'recruit': { var g = this.recruit(pid); success = (g !== false); result = g; break; }
+            case 'research_attack': { var inc = this.research(pid, 'attack'); success = (inc !== false); result = inc; break; }
+            case 'research_defense': { var inc = this.research(pid, 'defense'); success = (inc !== false); result = inc; break; }
+            case 'ally': success = this.changeRelation(pid, action.target, 1); break;
+            case 'war': success = this.changeRelation(pid, action.target, -1); break;
+            case 'unally': success = this.changeRelation(pid, action.target, 0); break;
+            case 'peace': success = this.changeRelation(pid, action.target, 0); break;
+            default: return false;
+        }
+        if (success) this.updateCooldowns();
+        return { success: success, result: result };
+    }
+
+    getAllyTroops(pid) {
+        var sum = 0;
+        for (var k=0; k<this.players.length; k++) {
+            if (k!==pid && this.players[pid].relations[k]===1 && this.players[k].alive) sum += this.players[k].troops*0.5;
+        }
+        return sum;
+    }
+
+    aiTurn(pid) {
+        var p = this.players[pid];
+        if (!p.alive || this.finished) return;
+        if (!tutorial.active && !this.simulationMode && this.currentActingPlayer !== pid) return;
+        if (tutorial.active) {
+            var step = TUTORIAL_STEPS[tutorial.step];
+            if (step && step.allowed) return;
+            if (pid !== 2 && pid !== 0) return;
+        }
+        if (this.shouldRelocateCapital(pid)) this.relocateCapital(pid);
+        var actions = this.getValidActions(pid);
+        if (tutorial.active && pid !== 0) {
+            actions = actions.filter(function(a) { return !['ally', 'war', 'unally', 'peace'].includes(a.type); });
+        }
+        if (actions.length === 0) return;
+
+        var self = this;
+        var alivePlayers = this.players.filter(function(q) { return q.alive; });
+        var maxTroops = Math.max.apply(null, alivePlayers.map(function(q) { return q.troops; }));
+        var maxAtk = Math.max.apply(null, alivePlayers.map(function(q) { return q.atkRange; }));
+        var maxDef = Math.max.apply(null, alivePlayers.map(function(q) { return q.defRange; }));
+        var avgTerritories = alivePlayers.reduce(function(s, q) { return s + q.territories.length; }, 0) / alivePlayers.length;
+        var targetFactor = 1 - 0.4 * Math.max(0.01, this.R);
+        var recruitTarget = Math.max(1, maxTroops * targetFactor);
+        var atkTarget = Math.max(1, maxDef * targetFactor);
+        var defTarget = Math.max(1, maxAtk * targetFactor);
+        var territoryRatio = avgTerritories > 0 ? p.territories.length / avgTerritories : 1;
+        var territoryCrisis = clamp(1 - territoryRatio / 0.5, 0, 1);
+
+        var distToNearestEnemyTerritory = function(x, y) {
+            var minD = Infinity;
+            for (var qi = 0; qi < self.players.length; qi++) {
+                var q = self.players[qi];
+                if (q.id === pid || !q.alive || p.relations[q.id] !== -1) continue;
+                for (var ti = 0; ti < q.territories.length; ti++) {
+                    var d = manhattan({ x: x, y: y }, q.territories[ti]);
+                    if (d < minD) minD = d;
+                }
+            }
+            return minD === Infinity ? 999 : minD;
+        };
+        var distToNearestEnemyCapital = function(x, y) {
+            var minD = Infinity;
+            for (var qi = 0; qi < self.players.length; qi++) {
+                var q = self.players[qi];
+                if (q.id === pid || !q.alive || p.relations[q.id] !== -1) continue;
+                if (!q.capital) continue;
+                var d = manhattan({ x: x, y: y }, q.capital);
+                if (d < minD) minD = d;
+            }
+            return minD === Infinity ? 999 : minD;
+        };
+
+        var scored = actions.map(function(a) {
+            var raw = 0;
+            switch (a.type) {
+                case 'expand': {
+                    var dx = 0, dy = 0;
+                    if (a.dir === 'up') dy = -1; else if (a.dir === 'down') dy = 1;
+                    else if (a.dir === 'left') dx = -1; else dx = 1;
+                    var newCells = 0, totalPot = 0;
+                    for (var ti = 0; ti < p.territories.length; ti++) {
+                        var t = p.territories[ti];
+                        var nx = t.x + dx, ny = t.y + dy;
+                        if (nx >= 0 && nx < self.W && ny >= 0 && ny < self.H && self.isEmpty(nx, ny)) {
+                            newCells++;
+                            var pot = 4;
+                            var dirs4 = [[0,1],[0,-1],[1,0],[-1,0]];
+                            for (var d2i = 0; d2i < 4; d2i++) {
+                                var d2 = dirs4[d2i];
+                                var cx = nx + d2[0], cy = ny + d2[1];
+                                if (cx >= 0 && cx < self.W && cy >= 0 && cy < self.H && self.isEmpty(cx, cy)) pot += 2;
+                            }
+                            for (var d2i = 0; d2i < 4; d2i++) {
+                                var d2 = dirs4[d2i];
+                                var cx = nx + d2[0], cy = ny + d2[1];
+                                if (cx >= 0 && cx < self.W && cy >= 0 && cy < self.H && self.grid[cy][cx].owner === pid) pot += 5;
+                            }
+                            pot += Math.max(0, 8 - distToNearestEnemyTerritory(nx, ny)) * (-1.0);
+                            pot += Math.max(0, 12 - distToNearestEnemyCapital(nx, ny)) * (-0.3);
+                            if (manhattan({ x: nx, y: ny }, p.capital) <= 1) pot += 8;
+                            var distToEdge = Math.min(nx, ny, self.W - 1 - nx, self.H - 1 - ny);
+                            if (distToEdge <= 2) pot += 5;
+                            if ((nx === 0 || nx === self.W - 1) && (ny === 0 || ny === self.H - 1)) pot += 3;
+                            totalPot += pot;
+                        }
+                    }
+                    raw = newCells * (newCells > 0 ? totalPot / newCells : 0);
+                    for (var ti = 0; ti < p.territories.length; ti++) {
+                        var t = p.territories[ti];
+                        var nx = t.x + dx, ny = t.y + dy;
+                        if (nx >= 0 && nx < self.W && ny >= 0 && ny < self.H) {
+                            var c = self.grid[ny][nx];
+                            if (c.owner !== -1 && c.owner !== pid) { raw += 20; break; }
+                        }
+                    }
+                    raw = raw * (1 + p.Exp * 0.5 + territoryCrisis * 0.6);
+                    break;
+                }
+                case 'recruit': {
+                    var need = Math.max(0, (recruitTarget - p.troops) / Math.max(1, recruitTarget)) * 100;
+                    raw = need * (1 + (1 - p.Cau) * 0.5 + territoryCrisis * 0.8);
+                    if (p.troops < recruitTarget * 0.5) raw += 40;
+                    else if (p.troops < recruitTarget * 0.7) raw += 20;
+                    break;
+                }
+                case 'research_attack': {
+                    var need = Math.max(0, (atkTarget - p.atkRange) / Math.max(1, atkTarget)) * 100;
+                    var raw0 = need * (1 + p.Tech * 0.8);
+                    if (p.atkRange === 0) raw0 += 10;
+                    if (p.atkRange < atkTarget * 0.5) raw0 += 40;
+                    else if (p.atkRange < atkTarget * 0.7) raw0 += 20;
+                    raw = raw0 * (1 - territoryCrisis * 0.5);
+                    break;
+                }
+                case 'research_defense': {
+                    var need = Math.max(0, (defTarget - p.defRange) / Math.max(1, defTarget)) * 100;
+                    var raw0 = need * (1 + p.Tech * 0.8);
+                    if (p.defRange === 0) raw0 += 10;
+                    if (p.defRange < defTarget * 0.5) raw0 += 40;
+                    else if (p.defRange < defTarget * 0.7) raw0 += 20;
+                    raw = raw0 * (1 + territoryCrisis * 0.4);
+                    break;
+                }
+                case 'ally': {
+                    var target = self.players[a.target];
+                    if (!target.alive) { raw = -1000; break; }
+                    var tStr = target.troops + target.atkRange * 5 + target.defRange * 3;
+                    var safe = 1 / (1 + manhattan(p.capital, target.capital));
+                    var hasEnemyBorder = false;
+                    for (var k = 0; k < self.players.length; k++) {
+                        if (k !== pid && k !== a.target && p.relations[k] === -1 && self.hasBorder(a.target, k)) { hasEnemyBorder = true; break; }
+                    }
+                    var score = tStr * safe + p.Soc * 20;
+                    if (hasEnemyBorder) score -= 20;
+                    var accept = self.getAcceptProb(pid, a.target, 'alliance');
+                    if (accept < 0.3) score -= 15;
+                    raw = score * (1 + p.Soc * 0.5 + territoryCrisis * 0.5);
+                    break;
+                }
+                case 'war': {
+                    var target = self.players[a.target];
+                    if (!target.alive) { raw = -1000; break; }
+                    var myTotal = p.troops + self.getAllyTroops(pid);
+                    var enTotal = target.troops + self.getAllyTroops(a.target);
+                    var ratio = myTotal / (enTotal || 1);
+                    var score = 0;
+                    if (self.hasBorder(pid, a.target)) score += (ratio - 1) * 30;
+                    if (p.atkRange > 0 && manhattan(p.capital, target.capital) <= p.atkRange) score += p.atkRange * 5;
+                    if (ratio < 0.8) score -= 25;
+                    if (ratio > 1.2) score += 10;
+                    raw = (score + p.Agg * 30) * (1 + p.Agg * 0.5 - territoryCrisis * 0.7);
+                    break;
+                }
+                case 'unally': {
+                    var target = self.players[a.target];
+                    if (!target.alive) { raw = -1000; break; }
+                    var contrib = target.troops * 0.5;
+                    var attackPotential = 0;
+                    if (self.hasBorder(pid, a.target)) {
+                        var myTotal = p.troops + self.getAllyTroops(pid) - target.troops * 0.5;
+                        var enTotal = target.troops + self.getAllyTroops(a.target) - p.troops * 0.5;
+                        var ratio = myTotal / (enTotal || 1);
+                        if (ratio > 1.2) attackPotential = 30;
+                    }
+                    var benefit = contrib - attackPotential;
+                    if (benefit < 0) { raw = -1000; break; }
+                    raw = (benefit + p.Agg * 20) * (1 + p.Agg * 0.5 - territoryCrisis * 0.5);
+                    break;
+                }
+                case 'peace': {
+                    var target = self.players[a.target];
+                    if (!target.alive) { raw = -1000; break; }
+                    var myTotal = p.troops + self.getAllyTroops(pid);
+                    var enTotal = target.troops + self.getAllyTroops(a.target);
+                    var need = Math.max(0, (enTotal - myTotal) / (enTotal + 1)) * 100;
+                    var accept = self.getAcceptProb(pid, a.target, 'peace');
+                    var score = need + (1 - p.Agg) * 30;
+                    if (accept < 0.2) score -= 20;
+                    raw = score * (1 + p.Soc * 0.5 + territoryCrisis * 0.6);
+                    break;
+                }
+                default: raw = -1000;
+            }
+
+            var percentile = 0.5;
+            if (raw > -1000) percentile = estimatePercentile(raw, a.type);
+            var effectiveR = Math.max(0.01, self.R);
+            var factor = 1 + (Math.random() * 2 - 1) * effectiveR;
+            var finalScore = Math.max(0, Math.min(1, percentile * factor));
+            return { action: a, rawScore: raw, percentile: percentile, finalScore: finalScore };
+        });
+
+        scored.sort(function(a, b) { return b.finalScore - a.finalScore; });
+        if (scored.length === 0) return;
+
+        if (DEBUG_AI_SCORES) {
+            var shortNames = {
+                'expand': '扩张', 'recruit': '征兵', 'research_attack': '攻科研',
+                'research_defense': '防科研', 'ally': '结盟', 'war': '宣战',
+                'unally': '解盟', 'peace': '求和'
+            };
+            var lines = ['🤖 ' + p.name + '(兵' + p.troops + '/土' + p.territories.length + '):'];
+            for (var si = 0; si < scored.length; si++) {
+                var s = scored[si];
+                var dirSuffix = s.action.dir ? '-' + s.action.dir : '';
+                var tgt = (s.action.target !== undefined) ? '→' + self.players[s.action.target].name : '';
+                lines.push('   ' + shortNames[s.action.type] + dirSuffix + tgt + ': raw=' + Math.round(s.rawScore) + ' p=' + (s.percentile*100).toFixed(1) + '% f=' + (s.finalScore*100).toFixed(1) + '%');
+            }
+            this.addLog(lines.join('\n'));
+        }
+
+        this.performAction(pid, scored[0].action);
+    }
+
+    async startNewTurnAsync() {
+        if (this.finished) return;
+        if (!this.players[0].alive && !this.simulationMode) return;
+        this.waitingForHuman = false;
+        var self = this;
+        this.turnOrder = this.fixedTurnOrder.filter(function(id) { return self.players[id].alive; });
+        this.humanOrderIdx = this.turnOrder.indexOf(0);
+        var actionDelay = parseFloat(document.getElementById('actionDelaySlider').value) * 1000;
+        for (var i = 0; i < this.humanOrderIdx; i++) {
+            var pid = this.turnOrder[i];
+            if (pid === 0) continue;
+            await waitForDiplo();
+            await waitForSimulationResume();
+            if (this.players[pid].alive && !this.finished) {
+                this.currentActingPlayer = pid;
+                this.updateStatusBar();
+                this.aiTurn(pid);
+                renderGame();
+                await waitForDiplo();
+                await new Promise(function(r) { setTimeout(r, actionDelay); });
+            }
+        }
+        if (this.finished) return;
+        this.currentActingPlayer = 0;
+        this.waitingForHuman = true;
+        renderGame();
+        setFeedback('轮到你了', 'info');
+    }
+
+    async finishHumanTurnAsync() {
+        if (this.finished) return;
+        this.waitingForHuman = false;
+        renderGame();
+        var actionDelay = parseFloat(document.getElementById('actionDelaySlider').value) * 1000;
+        await waitForDiplo();
+        await new Promise(function(r) { setTimeout(r, actionDelay); });
+        for (var i = (this.humanOrderIdx ?? -1) + 1; i < (this.turnOrder?.length ?? 0); i++) {
+            var pid = this.turnOrder[i];
+            if (pid === 0) continue;
+            await waitForDiplo();
+            await waitForSimulationResume();
+            if (this.players[pid].alive && !this.finished) {
+                this.currentActingPlayer = pid;
+                this.updateStatusBar();
+                this.aiTurn(pid);
+                renderGame();
+                await waitForDiplo();
+                await new Promise(function(r) { setTimeout(r, actionDelay); });
+            }
+        }
+        if (!this.finished) {
+            await waitForDiplo();
+            await this.resolveWarsAsync();
+        }
+        this.updateCooldowns();
+        this.ensureCapital(0);
+        var human = this.players[0];
+        if (human.alive && human.territories.length === 0) {
+            human.alive = false;
+            this.addLog('你失去了全部领土，被淘汰');
+            showEventPopup('💀 你失去了全部领土，被淘汰！', 5000);
+        }
+        this.turn++;
+        this.updateStatusBar();
+        document.getElementById('turnDisplay').textContent = this.turn;
+        if (this.finished) {
+            this.currentActingPlayer = -1;
+            this.addLog('游戏结束！');
+            renderGame();
+            return;
+        }
+        if (!human.alive) {
+            setFeedback('你已被淘汰，AI 自动对战开始...', 'info');
+            document.getElementById('mainMenu').innerHTML = '<span style="color:#f44336;">你已被淘汰，正在自动进行...</span>';
+            document.getElementById('subMenu').innerHTML = '';
+            this.autoPlay().then(function() { renderGame(); });
+            return;
+        }
+        await this.startNewTurnAsync();
+        renderGame();
+    }
+
+    async autoPlay() {
+        this.waitingForHuman = false;
+        var self = this;
+        while (!this.finished) {
+            var order = this.fixedTurnOrder.filter(function(id) { return self.players[id].alive; });
+            var actionDelay = parseFloat(document.getElementById('actionDelaySlider').value) * 1000;
+            for (var oi = 0; oi < order.length; oi++) {
+                var pid = order[oi];
+                if (!this.simulationMode && this.players[pid].human) continue;
+                await waitForDiplo();
+                await waitForSimulationResume();
+                if (this.players[pid].alive && !this.finished) {
+                    this.currentActingPlayer = pid;
+                    this.updateStatusBar();
+                    this.aiTurn(pid);
+                    renderGame();
+                    await waitForDiplo();
+                    await new Promise(function(r) { setTimeout(r, actionDelay); });
+                }
+            }
+            if (!this.finished) {
+                await waitForDiplo();
+                await this.resolveWarsAsync();
+            }
+            this.updateCooldowns();
+            this.turn++;
+            this.updateStatusBar();
+            document.getElementById('turnDisplay').textContent = this.turn;
+            renderGame();
+            var alive = this.players.filter(function(p) { return p.alive; });
+            if (alive.length <= 1) {
+                this.finished = true;
+                this.currentActingPlayer = -1;
+                if (alive.length === 1) this.addLog('🏆 ' + cname(alive[0]) + ' 获胜！');
+                break;
+            }
+            await new Promise(function(r) { setTimeout(r, 300); });
+        }
+        renderGame();
+    }
+}
+
+// =====================================================================
+// UI 渲染
+// =====================================================================
+var G = null;
+var selectedInfoPlayer = -1;
+
+function setFeedback(msg, type) {
+    if (type === undefined) type = 'info';
+    var area = document.getElementById('feedbackArea');
+    area.textContent = msg;
+    area.className = 'feedback ' + type;
+    area.style.opacity = 1;
+    clearTimeout(window.feedbackTimeout);
+    window.feedbackTimeout = setTimeout(function() { area.style.opacity = 0.6; }, 3000);
+}
+
+function renderGame() {
+    if (!G) return;
+    var container = document.getElementById('mapContainer');
+    var containerWidth = container.clientWidth - 8;
+    var containerHeight = container.clientHeight || 600;
+    var effectiveHeight = containerHeight > 100 ? containerHeight : 600;
+
+    var fitCellSize = Math.min(containerWidth / G.W, effectiveHeight / G.H);
+    var cellSize = fitCellSize * zoomLevel;
+    cellSize = Math.max(8, Math.min(cellSize, 120));
+    var labelFontSize = cellSize * LABEL_RATIO;
+    var labelStyle = 'font-size:' + labelFontSize + 'px;';
+
+    var zoomDisplay = document.getElementById('zoomDisplay');
+    if (zoomDisplay) zoomDisplay.textContent = Math.round(zoomLevel * 100) + '%';
+
+    var html = '<table>';
+
+    var viewPid = selectedInfoPlayer;
+    if (viewPid === -1) viewPid = 0;
+    if (!G.players[viewPid] || !G.players[viewPid].alive) viewPid = 0;
+    var viewer = G.players[viewPid];
+    var viewerAtk = viewer && viewer.alive ? viewer.atkRange : 0;
+    var viewerCap = viewer ? viewer.capital : null;
+
+    for (var y=0; y<G.H; y++) {
+        html += '<tr>';
+        for (var x=0; x<G.W; x++) {
+            var cell = G.grid[y][x];
+            var owner = cell.owner;
+            var isCapital = (cell.capitalOf !== -1);
+            var bg = '#2a3142';
+            var text = '';
+            var borderColor = '';
+            var borderWidth = '1px';
+            var distText = '';
+            var probText = '';
+
+            if (viewerCap) distText = manhattan({x:x, y:y}, viewerCap);
+
+            if (owner !== -1) {
+                bg = G.players[owner].color;
+                if (isCapital) text = '★';
+                if (isCapital) {
+                    var effectiveSelected = (selectedInfoPlayer === -1) ? 0 : selectedInfoPlayer;
+                    if (effectiveSelected >= 0 && effectiveSelected < G.players.length) {
+                        if (owner === effectiveSelected) borderColor = '#ffffff';
+                        else {
+                            var relVal = G.players[effectiveSelected].relations[owner];
+                            if (relVal === 1) borderColor = '#4a9eff';
+                            else if (relVal === -1) borderColor = '#ff4a4a';
+                            else borderColor = '#ffdd4a';
+                        }
+                        borderWidth = '2px';
+                    }
+                }
+            }
+
+            if (owner !== -1 && owner !== viewPid && viewer && viewer.alive && viewerCap && viewerAtk > 0) {
+                var d = manhattan({x:x, y:y}, viewerCap);
+                var atkProb = remoteHitProb(d, viewerAtk);
+                var defender = G.players[owner];
+                var defProb = remoteHitProb(d, defender.defRange);
+                var finalProb = atkProb * (1 - defProb);
+                if (finalProb > 0.001) probText = Math.round(finalProb * 100) + '%';
+            }
+
+            var cls = (owner!==-1 ? 'owned' : '') + (isCapital ? ' capital' : '');
+            var dataAttr = isCapital ? ' data-player="' + cell.capitalOf + '"' : '';
+            var style = 'background:' + bg + '; width:' + cellSize + 'px; height:' + cellSize + 'px; min-width:' + cellSize + 'px; min-height:' + cellSize + 'px;';
+            if (borderColor) style += ' border-color: ' + borderColor + ' !important; border-width: ' + borderWidth + ' !important;';
+            else style += ' border-color: #3d465a; border-width: 1px;';
+
+            html += '<td class="' + cls + '" style="' + style + '" ' + dataAttr + '>' +
+                text +
+                (distText !== '' ? '<span class="dist-label" style="' + labelStyle + '">' + distText + '</span>' : '') +
+                (probText ? '<span class="prob-label" style="' + labelStyle + '">' + probText + '</span>' : '') +
+                '</td>';
+        }
+        html += '</tr>';
+    }
+    html += '</table>';
+    container.innerHTML = html;
+
+    container.querySelectorAll('td.capital').forEach(function(td) {
+        td.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (panMoved) { panMoved = false; return; }
+            var pid = parseInt(this.dataset.player);
+            if (!isNaN(pid) && pid >= 0 && pid < G.players.length) {
+                if (selectedInfoPlayer === pid) selectedInfoPlayer = -1;
+                else selectedInfoPlayer = pid;
+                renderGame();
+            }
+        });
+    });
+
+    G.updateStatusBar();
+    document.getElementById('turnDisplay').textContent = G.turn;
+    buildMainMenu();
+    checkTutorialConditional();
+}
+
+function hideInfoPanel() {
+    if (selectedInfoPlayer === -1) return;
+    selectedInfoPlayer = -1;
+    renderGame();
+}
+
+function buildMainMenu() {
+    var mainDiv = document.getElementById('mainMenu');
+    var subDiv = document.getElementById('subMenu');
+    if (!G || G.finished) {
+        mainDiv.innerHTML = '<span style="color:#7f8bb3;">游戏已结束</span>';
+        subDiv.innerHTML = '';
+        return;
+    }
+    if (G.simulationMode) {
+        var pauseHint = simulationPaused ? '（已暂停，点击 ⏸ / ▶ 按钮继续）' : '';
+        mainDiv.innerHTML = '<span style="color:#a890ff; font-weight:bold;">🤖 AI 模拟进行中...' + pauseHint + '</span>' +
+            '<div style="width:100%; margin-top:6px; font-size:0.8rem; color:#7f8bb3;">点击地图上的★可切换观察视角</div>';
+        subDiv.innerHTML = '';
+        return;
+    }
+    if (G.pendingConfirm) {
+        var orderNames = G.fixedTurnOrder.map(function(pid) {
+            var p = G.players[pid];
+            return '<span style="color:' + p.color + '; font-weight:bold;">' + p.name + '</span>';
+        }).join(' → ');
+        var humanPos = G.fixedTurnOrder.indexOf(0) + 1;
+        var total = G.fixedTurnOrder.length;
+        mainDiv.innerHTML =
+            '<div style="width:100%; margin-bottom:8px; line-height:1.9; font-size:0.85rem;">' +
+                '<div style="color:#aab3d0;">行动顺序：</div>' +
+                '<div>' + orderNames + '</div>' +
+                '<div style="margin-top:4px;">你是第 <span style="color:#ffdd4a; font-weight:bold; font-size:1.05rem;">' + humanPos + '</span> 个行动（共 ' + total + ' 位）</div>' +
+            '</div>' +
+            '<button class="main-btn" id="confirmStartBtn" style="background:#2d6a4f; min-width:110px;">▶ 开始游戏</button>';
+        document.getElementById('confirmStartBtn').onclick = function() {
+            G.pendingConfirm = false;
+            setFeedback('游戏开始！', 'info');
+            renderGame();
+            var actionDelay = parseFloat(document.getElementById('actionDelaySlider').value) * 1000;
+            var firstPid = G.fixedTurnOrder[0];
+            if (firstPid !== 0) {
+                G.currentActingPlayer = firstPid;
+                G.updateStatusBar();
+                setTimeout(function() { G.startNewTurnAsync().then(function() { renderGame(); }); }, actionDelay);
+            } else {
+                G.startNewTurnAsync().then(function() { renderGame(); });
+            }
+        };
+        subDiv.innerHTML = '';
+        return;
+    }
+    var human = G.players[0];
+    if (!human.alive) {
+        mainDiv.innerHTML = '<span style="color:#f44336;">你已被淘汰，正在自动进行...</span>';
+        subDiv.innerHTML = '';
+        return;
+    }
+    if (!G.waitingForHuman) {
+        mainDiv.innerHTML = '<span style="color:#7f8bb3;">等待其他玩家行动...</span>';
+        subDiv.innerHTML = '';
+        return;
+    }
+    var mainBtns = [
+        { id: 'expand', label: '扩张' },
+        { id: 'recruit', label: '征兵' },
+        { id: 'research', label: '科研' },
+        { id: 'diplomacy', label: '外交' },
+        { id: 'relocate', label: '迁都' }
+    ];
+    var html = '';
+    for (var i = 0; i < mainBtns.length; i++) html += '<button class="main-btn" data-action="' + mainBtns[i].id + '">' + mainBtns[i].label + '</button>';
+    mainDiv.innerHTML = html;
+    mainDiv.querySelectorAll('.main-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() { handleMainAction(this.dataset.action); });
+    });
+    subDiv.innerHTML = '';
+}
+
+function handleMainAction(action) {
+    var subDiv = document.getElementById('subMenu');
+    var human = G.players[0];
+    if (!human.alive || G.finished) return;
+    if (G.simulationMode) return;
+
+    if (tutorial.active) {
+        var step = TUTORIAL_STEPS[tutorial.step];
+        if (step && step.allowed && step.allowed.main !== action) {
+            setFeedback('请按教程提示操作', 'info');
+            return;
+        }
+    }
+
+    var subHtml = '';
+    switch (action) {
+        case 'expand': {
+            var dirs = ['上','下','左','右'];
+            for (var i = 0; i < dirs.length; i++) {
+                var d = dirs[i];
+                var dirMap = {'上':'up','下':'down','左':'left','右':'right'};
+                subHtml += '<button class="sub-btn" data-dir="' + dirMap[d] + '">' + d + '</button>';
+            }
+            subDiv.innerHTML = subHtml;
+            subDiv.querySelectorAll('.sub-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var dir = this.dataset.dir;
+                    if (tutorial.active) {
+                        var step = TUTORIAL_STEPS[tutorial.step];
+                        if (step && step.allowed && step.allowed.dir && dir !== step.allowed.dir) {
+                            setFeedback('请按教程提示的方向扩张', 'info');
+                            return;
+                        }
+                    }
+                    var result = G.performAction(0, {type:'expand', dir:dir});
+                    if (result.success) { setFeedback('扩张成功', 'success'); afterHumanAction('expand', { dir: dir }); }
+                    else setFeedback('扩张失败（可能无相邻空格）', 'fail');
+                });
+            });
+            break;
+        }
+        case 'recruit': {
+            var result = G.performAction(0, {type:'recruit'});
+            if (result.success) { setFeedback('征兵成功，获得 ' + result.result + ' 兵力', 'success'); afterHumanAction('recruit'); }
+            else setFeedback('征兵失败', 'fail');
+            break;
+        }
+        case 'research': {
+            subHtml = '<button class="sub-btn" data-type="attack">攻击</button>' +
+                       '<button class="sub-btn" data-type="defense">防御</button>';
+            subDiv.innerHTML = subHtml;
+            subDiv.querySelectorAll('.sub-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var type = this.dataset.type;
+                    var actionKey = type === 'attack' ? 'research_attack' : 'research_defense';
+                    if (tutorial.active) {
+                        var step = TUTORIAL_STEPS[tutorial.step];
+                        if (step && step.allowed && step.allowed.sub && step.allowed.sub !== actionKey) {
+                            setFeedback('请按教程提示选择', 'info');
+                            return;
+                        }
+                    }
+                    var result = G.performAction(0, {type: actionKey});
+                    if (result.success) {
+                        var label = type === 'attack' ? '攻击' : '防御';
+                        setFeedback('科研成功，' + label + '射程 +' + result.result, 'success');
+                        afterHumanAction(actionKey);
+                    } else setFeedback('科研失败', 'fail');
+                });
+            });
+            break;
+        }
+        case 'diplomacy': {
+            var list = '';
+            for (var i=1; i<G.players.length; i++) {
+                var p = G.players[i];
+                if (!p.alive) continue;
+                var rel = human.relations[i];
+                var relName = {1:'同盟',0:'中立','-1':'敌对'}[rel];
+                list += '<button class="sub-btn" data-target="' + i + '" style="border-left: 4px solid ' + p.color + ';">' + p.name + ' (' + relName + ')</button>';
+            }
+            if (!list) subHtml = '<span style="color:#7f8bb3;">无其他存活玩家</span>';
+            else subHtml = list;
+            subDiv.innerHTML = subHtml;
+            subDiv.querySelectorAll('.sub-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var target = parseInt(this.dataset.target);
+                    if (tutorial.active) {
+                        var step = TUTORIAL_STEPS[tutorial.step];
+                        if (step && step.allowed && step.allowed.target !== undefined && step.allowed.target !== target) {
+                            setFeedback('请按教程提示选择目标', 'info');
+                            return;
+                        }
+                    }
+                    var rel = human.relations[target];
+                    var options = '';
+                    if (rel === 0) {
+                        options = '<button class="sub-btn" data-diplo="ally" data-target="' + target + '">结盟</button>' +
+                                  '<button class="sub-btn" data-diplo="war" data-target="' + target + '">宣战</button>';
+                    } else if (rel === 1) {
+                        options = '<button class="sub-btn" data-diplo="unally" data-target="' + target + '">解盟</button>';
+                    } else if (rel === -1) {
+                        options = '<button class="sub-btn" data-diplo="peace" data-target="' + target + '">求和</button>';
+                    }
+                    subDiv.innerHTML = options;
+                    subDiv.querySelectorAll('.sub-btn').forEach(function(btn2) {
+                        btn2.addEventListener('click', function() {
+                            var diploType = this.dataset.diplo;
+                            var tgt = parseInt(this.dataset.target);
+                            if (tutorial.active) {
+                                var step = TUTORIAL_STEPS[tutorial.step];
+                                if (step && step.allowed && step.allowed.sub && step.allowed.sub !== diploType) {
+                                    setFeedback('请按教程提示选择', 'info');
+                                    return;
+                                }
+                            }
+                            var result = G.performAction(0, {type: diploType, target: tgt});
+                            if (result.success) setFeedback('外交成功', 'success');
+                            else setFeedback('外交失败（可能冷却中或对方拒绝）', 'fail');
+                            afterHumanAction(diploType, { target: tgt });
+                        });
+                    });
+                });
+            });
+            break;
+        }
+        case 'relocate': {
+            if (human.capitalCooldown > 0) {
+                setFeedback('迁都冷却中（剩余 ' + human.capitalCooldown + ' 回合）', 'fail');
+                break;
+            }
+            var ok = G.relocateCapital(0);
+            if (ok) {
+                setFeedback('迁都成功，首都已移至领土几何中心', 'success');
+                renderGame();
+                if (tutorial.active) afterHumanAction('relocate');
+            } else {
+                setFeedback('迁都失败（可能已在几何中心）', 'fail');
+            }
+            break;
+        }
+    }
+}
+
+function checkHumanEliminated() {
+    if (!G || G.finished) return;
+    var human = G.players[0];
+    if (!human.alive) {
+        setFeedback('你已被淘汰，AI 自动对战开始...', 'info');
+        document.getElementById('mainMenu').innerHTML = '<span style="color:#f44336;">你已被淘汰，正在自动进行...</span>';
+        document.getElementById('subMenu').innerHTML = '';
+        G.autoPlay().then(function() { renderGame(); });
+    }
+}
+
+// =====================================================================
+// 鼠标滚轮缩放 / 双指缩放 / 拖动平移
+// =====================================================================
+var mapContainer = document.getElementById('mapContainer');
+
+mapContainer.addEventListener('click', function(e) {
+    if (panMoved) { panMoved = false; return; }
+    if (!e.target.closest('td.capital')) hideInfoPanel();
+});
+
+function onWheelZoom(e) {
+    if (!G || G.finished) return;
+    e.preventDefault();
+    var oldZoom = zoomLevel;
+    var factor = e.deltaY < 0 ? 1.1 : 0.9;
+    zoomLevel = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomLevel * factor));
+    if (zoomLevel !== oldZoom) renderGame();
+}
+
+var panMoved = false;
+var isPanning = false;
+var panStartX = 0, panStartY = 0;
+var panScrollLeft = 0, panScrollTop = 0;
+
+mapContainer.addEventListener('mousedown', function(e) {
+    if (!G || G.finished) return;
+    if (e.button !== 0) return;
+    isPanning = true;
+    panMoved = false;
+    panStartX = e.clientX;
+    panStartY = e.clientY;
+    panScrollLeft = mapContainer.scrollLeft;
+    panScrollTop = mapContainer.scrollTop;
+    mapContainer.classList.add('panning');
+});
+
+document.addEventListener('mousemove', function(e) {
+    if (!isPanning) return;
+    var dx = e.clientX - panStartX;
+    var dy = e.clientY - panStartY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) panMoved = true;
+    mapContainer.scrollLeft = panScrollLeft - dx;
+    mapContainer.scrollTop = panScrollTop - dy;
+});
+
+document.addEventListener('mouseup', function() {
+    if (!isPanning) return;
+    isPanning = false;
+    mapContainer.classList.remove('panning');
+});
+
+var touchStartDist = 0;
+var touchStartZoom = 1.0;
+var isTouchPanning = false;
+var touchStartX = 0, touchStartY = 0;
+var touchScrollLeft = 0, touchScrollTop = 0;
+
+function getTouchDistance(touches) {
+    var dx = touches[0].clientX - touches[1].clientX;
+    var dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+}
+
+mapContainer.addEventListener('touchstart', function(e) {
+    if (!G || G.finished) return;
+    if (e.touches.length === 1) {
+        isTouchPanning = true; panMoved = false;
+        touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY;
+        touchScrollLeft = mapContainer.scrollLeft; touchScrollTop = mapContainer.scrollTop;
+    } else if (e.touches.length === 2) {
+        isTouchPanning = false;
+        touchStartDist = getTouchDistance(e.touches);
+        touchStartZoom = zoomLevel;
+    }
+}, { passive: true });
+
+mapContainer.addEventListener('touchmove', function(e) {
+    if (!G || G.finished) return;
+    if (e.touches.length === 1 && isTouchPanning) {
+        e.preventDefault();
+        var dx = e.touches[0].clientX - touchStartX;
+        var dy = e.touches[0].clientY - touchStartY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) panMoved = true;
+        mapContainer.scrollLeft = touchScrollLeft - dx;
+        mapContainer.scrollTop = touchScrollTop - dy;
+    } else if (e.touches.length === 2 && touchStartDist > 0) {
+        e.preventDefault();
+        var dist = getTouchDistance(e.touches);
+        var ratio = dist / touchStartDist;
+        zoomLevel = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, touchStartZoom * ratio));
+        renderGame();
+    }
+}, { passive: false });
+
+mapContainer.addEventListener('touchend', function(e) {
+    if (e.touches.length < 2) touchStartDist = 0;
+    if (e.touches.length === 0) isTouchPanning = false;
+}, { passive: true });
+
+mapContainer.addEventListener('wheel', onWheelZoom, { passive: false });
+
+// =====================================================================
+// 开始 / 重置
+// =====================================================================
+function startGame() {
+    var W = parseInt(document.getElementById('mapW').value);
+    var H = parseInt(document.getElementById('mapH').value);
+    var totalPlayers = parseInt(document.getElementById('playerCnt').value);
+    var diffValue = parseFloat(document.getElementById('difficultySlider').value);
+    var R = Math.max(0.01, diffValue);
+    var playerNameInput = document.getElementById('playerName').value.trim();
+    var playerColor = document.getElementById('playerColor').value;
+    if (!/^[A-Za-z0-9_]+$/.test(playerNameInput)) { alert('玩家名字仅允许英文、数字、下划线'); return; }
+    if (W<4 || W>50 || H<4 || H>50 || totalPlayers<2 || totalPlayers>10) {
+        alert('参数范围：宽高4-50，玩家2-10');
+        return;
+    }
+    var selectedAIs = aiList.filter(function(a) { return selectedAISet.has(a.name); });
+    var neededAI = totalPlayers - 1;
+    if (selectedAIs.length > neededAI) { alert('已选AI数量超过所需'); return; }
+    if (selectedAIs.length < neededAI) {
+        var remaining = aiList.filter(function(a) { return !selectedAISet.has(a.name); });
+        if (remaining.length < (neededAI - selectedAIs.length)) { alert('可用AI不足'); return; }
+        var shuffled = remaining.slice();
+        for (var i=shuffled.length-1; i>0; i--) {
+            var j = rand(0,i);
+            var t = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = t;
+        }
+        for (var i=0; i<(neededAI - selectedAIs.length); i++) {
+            selectedAIs.push(shuffled[i]);
+            selectedAISet.add(shuffled[i].name);
+        }
+        renderAIList();
+    }
+    var playersConfig = [];
+    playersConfig.push({ human: true, name: playerNameInput, color: playerColor, Agg:0.5, Soc:0.5, Cau:0.5, Tech:0.5, Exp:0.5 });
+    for (var ai_i = 0; ai_i < selectedAIs.length; ai_i++) {
+        var ai = selectedAIs[ai_i];
+        var aiName = ai.name;
+        if (aiName === playerNameInput) aiName += '_1';
+        var suffix = '', counter = 1;
+        while (playersConfig.some(function(p) { return p.name === aiName + suffix; })) suffix = '_' + (counter++);
+        aiName += suffix;
+        playersConfig.push({
+            human: false, name: aiName, color: ai.color || '#888',
+            Agg: ai.Agg, Soc: ai.Soc, Cau: ai.Cau, Tech: ai.Tech, Exp: ai.Exp
+        });
+    }
+    zoomLevel = 1.0;
+    diploPaused = false;
+    simulationPaused = false;
+    selectedInfoPlayer = -1;
+    tutorial.active = false;
+    tutorial.step = 0;
+    document.getElementById('logBox').innerHTML = '游戏开始';
+    if (window._resizeHandler) {
+        window.removeEventListener('resize', window._resizeHandler);
+        window._resizeHandler = null;
+    }
+    G = new Game(W, H, playersConfig, R);
+    G.pendingConfirm = true;
+    G.simulationMode = false;
+    document.getElementById('pauseBtn').style.display = 'none';
+    document.getElementById('game').classList.add('active');
+    document.getElementById('setup').style.display = 'none';
+    renderGame();
+    setFeedback('请确认行动顺序', 'info');
+    document.getElementById('actionDelayDisplay').textContent = document.getElementById('actionDelaySlider').value;
+    document.getElementById('combatDelayDisplay').textContent = document.getElementById('combatDelaySlider').value;
+    window._resizeHandler = function() { renderGame(); };
+    window.addEventListener('resize', window._resizeHandler);
+}
+
+function startAISimulation() {
+    var W = parseInt(document.getElementById('mapW').value);
+    var H = parseInt(document.getElementById('mapH').value);
+    var totalPlayers = parseInt(document.getElementById('playerCnt').value);
+    var diffValue = parseFloat(document.getElementById('difficultySlider').value);
+    var R = Math.max(0.01, diffValue);
+    if (W<4 || W>50 || H<4 || H>50 || totalPlayers<2 || totalPlayers>10) {
+        alert('参数范围：宽高4-50，玩家2-10');
+        return;
+    }
+    if (aiList.length === 0) { alert('没有可用的 AI'); return; }
+    var selectedAIs = aiList.filter(function(a) { return selectedAISet.has(a.name); });
+    var neededAI = totalPlayers;
+    if (selectedAIs.length > neededAI) selectedAIs = selectedAIs.slice(0, neededAI);
+    if (selectedAIs.length < neededAI) {
+        var remaining = aiList.filter(function(a) { return !selectedAISet.has(a.name); });
+        var pool = remaining.length >= (neededAI - selectedAIs.length) ? remaining : aiList;
+        var shuffled = pool.slice();
+        for (var i=shuffled.length-1; i>0; i--) {
+            var j = rand(0, i);
+            var t = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = t;
+        }
+        var idx = 0;
+        while (selectedAIs.length < neededAI) {
+            selectedAIs.push(shuffled[idx % shuffled.length]);
+            idx++;
+        }
+    }
+    var playersConfig = [];
+    for (var i = 0; i < selectedAIs.length; i++) {
+        var ai = selectedAIs[i];
+        var aiName = ai.name;
+        var suffix = '', counter = 1;
+        while (playersConfig.some(function(p) { return p.name === aiName + suffix; })) suffix = '_' + (counter++);
+        aiName += suffix;
+        playersConfig.push({
+            human: false, name: aiName, color: ai.color || '#888',
+            Agg: ai.Agg, Soc: ai.Soc, Cau: ai.Cau, Tech: ai.Tech, Exp: ai.Exp
+        });
+    }
+    zoomLevel = 1.0;
+    diploPaused = false;
+    simulationPaused = false;
+    selectedInfoPlayer = -1;
+    tutorial.active = false;
+    tutorial.step = 0;
+    document.getElementById('logBox').innerHTML = '【AI 模拟】开始';
+    if (window._resizeHandler) {
+        window.removeEventListener('resize', window._resizeHandler);
+        window._resizeHandler = null;
+    }
+    G = new Game(W, H, playersConfig, R);
+    G.pendingConfirm = false;
+    G.simulationMode = true;
+    document.getElementById('pauseBtn').style.display = '';
+    document.getElementById('pauseBtn').textContent = '⏸ 暂停';
+    document.getElementById('pauseBtn').classList.remove('paused');
+    document.getElementById('game').classList.add('active');
+    document.getElementById('setup').style.display = 'none';
+    renderGame();
+    setFeedback('🤖 AI 模拟中...', 'info');
+    document.getElementById('actionDelayDisplay').textContent = document.getElementById('actionDelaySlider').value;
+    document.getElementById('combatDelayDisplay').textContent = document.getElementById('combatDelaySlider').value;
+    window._resizeHandler = function() { renderGame(); };
+    window.addEventListener('resize', window._resizeHandler);
+    G.autoPlay().then(function() { renderGame(); });
+}
+
+document.getElementById('startBtn').addEventListener('click', startGame);
+document.getElementById('tutorialBtn').addEventListener('click', startTutorial);
+document.getElementById('simulationBtn').addEventListener('click', startAISimulation);
+document.getElementById('resetBtn').addEventListener('click', function() {
+    if (G) G.finished = true;
+    G = null;
+    zoomLevel = 1.0;
+    diploPaused = false;
+    simulationPaused = false;
+    selectedInfoPlayer = -1;
+    tutorial.active = false;
+    tutorial.step = 0;
+    document.getElementById('game').classList.remove('active');
+    document.getElementById('setup').style.display = 'block';
+    document.getElementById('logBox').innerHTML = '';
+    document.getElementById('tutorialPanel').classList.remove('visible');
+    document.getElementById('pauseBtn').style.display = 'none';
+    highlightElement(null);
+    setFeedback('', 'info');
+    if (window._resizeHandler) {
+        window.removeEventListener('resize', window._resizeHandler);
+        window._resizeHandler = null;
+    }
+    updateContinueButton();
+});
+document.getElementById('playerCnt').addEventListener('change', updateSelectedCount);
+document.getElementById('actionDelaySlider').addEventListener('input', function() {
+    document.getElementById('actionDelayDisplay').textContent = this.value;
+});
+document.getElementById('combatDelaySlider').addEventListener('input', function() {
+    document.getElementById('combatDelayDisplay').textContent = this.value;
+});
+
+initAIList();
+updateSelectedCount();
+updateContinueButton();
+
+window.addEventListener('load', function() {
+    if (!localStorage.getItem('squareWarTutorialSeen')) {
+        localStorage.setItem('squareWarTutorialSeen', '1');
+        setTimeout(startTutorial, 200);
+    }
+});
+</script>
+</body>
+</html>
