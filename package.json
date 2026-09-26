@@ -1,6 +1,9 @@
 {
-  "name": "mgd‑psn",
+  "name": "mgd-psn",
   "version": "1.0.0",
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
     "express": "^4.21.1",
     "socket.io": "^4.8.1"
