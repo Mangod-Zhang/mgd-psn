@@ -1,0 +1,8 @@
+{
+  "name": "mgd‑psn",
+  "version": "1.0.0",
+  "dependencies": {
+    "express": "^4.21.1",
+    "socket.io": "^4.8.1"
+  }
+}
