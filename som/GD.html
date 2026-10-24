@@ -63,7 +63,6 @@
         }
         .admin-controls { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
         
-        /* 粉色标题背景 */
         .notice-box {
             background: hsla(325, 100%, 65%, 1); 
             padding: 15px 20px; 
@@ -85,7 +84,6 @@
     </style>
 </head>
 <body>
-    <!-- 导航栏地址已全部修改为热铁盒绝对路径 -->
     <header style="background-color: hsla(325,100%,65%,1);display:flex;align-items:center;justify-content:flex-start;gap:30px;padding:12px 20px;border-radius: 32px;position: fixed; top:10px;left:5%;right:5%; width:90%;z-index:999;box-shadow:0 10px 40px rgba(0,0,0,0.15);overflow-x:auto;white-space:nowrap;scrollbar-width:hidden">
         <nav>
             <a href="https://mgd-personal.rth1.xyz/som">
@@ -301,15 +299,37 @@
             panel.style.display = panel.style.display === 'none' || panel.style.display === '' ? 'block' : 'none';
         });
 
-        document.getElementById('loginBtn').addEventListener('click', () => {
+        // 修改后的验证按钮逻辑，向后端请求验证
+        document.getElementById('loginBtn').addEventListener('click', async () => {
             const pass = document.getElementById('adminPass').value;
-            if (pass) {
-                adminPassword = pass;
-                sessionStorage.setItem('som_admin_pass', pass);
-                document.getElementById('adminPass').style.display = 'none';
-                document.getElementById('loginBtn').style.display = 'none';
-                document.getElementById('logoutBtn').style.display = 'inline-block';
-                fetchTickets(); 
+            if (!pass) return;
+
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.textContent = '验证中...';
+
+            try {
+                const res = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pass })
+                });
+
+                if (res.ok) {
+                    adminPassword = pass;
+                    sessionStorage.setItem('som_admin_pass', pass);
+                    document.getElementById('adminPass').style.display = 'none';
+                    document.getElementById('loginBtn').style.display = 'none';
+                    document.getElementById('logoutBtn').style.display = 'inline-block';
+                    fetchTickets();
+                } else {
+                    alert('密码错误');
+                }
+            } catch (e) {
+                alert('网络错误');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '验证';
             }
         });
 
