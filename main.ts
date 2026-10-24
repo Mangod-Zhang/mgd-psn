@@ -3,15 +3,18 @@ import { serveDir } from "jsr:@std/http@1.0.0/file-server";
 const kv = await Deno.openKv();
 const clients = new Set<WebSocket>();
 
-// 该字符串为固定哈希值，并非明文密码
-const PASS_HASH = "e8b161232b84440f79d2f3e41776b470362e30199325b6714d9b5ba40a34cc26";
-
 async function checkPassword(pass: string) {
   const msgUint8 = new TextEncoder().encode(pass);
   const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex === PASS_HASH;
+  
+  const dbHash = await kv.get(["admin", "hash"]);
+  if (!dbHash.value) {
+    await kv.set(["admin", "hash"], hashHex);
+    return true;
+  }
+  return hashHex === dbHash.value;
 }
 
 function broadcast(message: string) {
@@ -39,7 +42,16 @@ Deno.serve(async (req) => {
     return response;
   }
 
-  if (pathname.startsWith("/api/tickets")) {
+  if (pathname.startsWith("/api")) {
+    // 新增：真正的密码验证接口
+    if (pathname === "/api/auth" && req.method === "POST") {
+      const body = await req.json();
+      if (await checkPassword(body.password)) {
+        return new Response(JSON.stringify({ success: true }), { headers: { "content-type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ error: "密码错误" }), { status: 401, headers: { "content-type": "application/json" } });
+    }
+
     if (pathname === "/api/tickets" && req.method === "GET") {
       const entries = kv.list({ prefix: ["tickets"] });
       const tickets = [];
@@ -81,12 +93,12 @@ Deno.serve(async (req) => {
     if (pathname === "/api/tickets/status" && req.method === "POST") {
       const body = await req.json();
       if (!(await checkPassword(body.password))) {
-        return new Response(JSON.stringify({ error: "管理密码错误" }), { status: 401 });
+        return new Response(JSON.stringify({ error: "管理密码错误" }), { status: 401, headers: { "content-type": "application/json" } });
       }
 
       const ticketData = await kv.get(["tickets", body.id]);
       if (!ticketData.value) {
-        return new Response(JSON.stringify({ error: "工单不存在" }), { status: 404 });
+        return new Response(JSON.stringify({ error: "工单不存在" }), { status: 404, headers: { "content-type": "application/json" } });
       }
 
       const updatedTicket = { ...ticketData.value, status: body.status };
@@ -98,7 +110,7 @@ Deno.serve(async (req) => {
     if (pathname === "/api/tickets/delete" && req.method === "POST") {
       const body = await req.json();
       if (!(await checkPassword(body.password))) {
-        return new Response(JSON.stringify({ error: "管理密码错误" }), { status: 401 });
+        return new Response(JSON.stringify({ error: "管理密码错误" }), { status: 401, headers: { "content-type": "application/json" } });
       }
 
       await kv.delete(["tickets", body.id]);
