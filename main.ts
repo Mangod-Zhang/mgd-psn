@@ -62,11 +62,18 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify(tickets), { headers: { "content-type": "application/json" } });
     }
 
-    if (pathname === "/api/tickets" && req.method === "POST") {
+        if (pathname === "/api/tickets" && req.method === "POST") {
       const rateLimitKey = ["ratelimit", ip];
       const rateLimit = await kv.get(rateLimitKey);
+      
+      // 【修改点】使用时间戳严格判断
       if (rateLimit.value) {
-        return new Response(JSON.stringify({ error: "提交太频繁，请一分钟后再试" }), { status: 429, headers: { "content-type": "application/json" } });
+        const lastTime = rateLimit.value as number;
+        const timeDiff = Date.now() - lastTime;
+        if (timeDiff < 60000) {
+          const remaining = Math.ceil((60000 - timeDiff) / 1000);
+          return new Response(JSON.stringify({ error: `提交太频繁，请 ${remaining} 秒后再试` }), { status: 429, headers: { "content-type": "application/json" } });
+        }
       }
 
       const body = await req.json();
@@ -84,7 +91,10 @@ Deno.serve(async (req) => {
       };
 
       await kv.set(["tickets", ticket.id], ticket);
-      await kv.set(rateLimitKey, true, { expireIn: 60000 });
+      
+      // 【修改点】存入当前时间戳，顺便设置 5 分钟后物理删除（防垃圾数据堆积）
+      await kv.set(rateLimitKey, Date.now(), { expireIn: 300000 });
+      
       broadcast(JSON.stringify({ type: "update_tickets" }));
       
       return new Response(JSON.stringify({ success: true, ticket }), { headers: { "content-type": "application/json" } });
